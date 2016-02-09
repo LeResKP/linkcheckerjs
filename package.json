@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/LeResKP/linkcheckerjs/issues"
   },
-  "homepage": "https://github.com/LeResKP/linkcheckerjs#readme"
+  "homepage": "https://github.com/LeResKP/linkcheckerjs#readme",
+  "dependencies": {
+    "phantomjs": "^2.1.3"
+  }
 }
