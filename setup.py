@@ -1,10 +1,27 @@
-from setuptools import setup, find_packages
-import sys
 import os
+import json
+from setuptools import setup, find_packages
+from distutils.command.build import build as _build
+
+import subprocess
 
 version = '0.0'
 
+
+class NpmInstall(_build):
+
+    def run(self):
+        package = json.load(open('package.json'))
+        packages = []
+        for name, version in package.get('dependencies', {}).items():
+            packages.append('%s@%s' % (name, version))
+        p = subprocess.Popen(["npm install --prefix build/lib/linkcheckerjs/ %s" % ' '.join(packages)], shell=True)
+        p.communicate()
+        _build.run(self)
+
+
 setup(
+    cmdclass={'build': NpmInstall},
     name='linkcheckerjs',
     version=version,
     description="",
