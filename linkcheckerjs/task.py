@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import subprocess
+from subprocess import Popen, PIPE
 from optparse import OptionParser
+import json
 
 from . import thread
 
@@ -13,8 +14,10 @@ def linkchecker_task(data):
     if data['log_level'] is not None:
         cmd += ['--log-level=%i' % data['log_level']]
     cmd += [data['url']]
-    process = subprocess.Popen(cmd)
-    process.communicate()
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    (stdout, stderr) = process.communicate()
+    dic = json.loads(stdout)
+    print 'dic', dic
 
 
 def main():
@@ -28,14 +31,21 @@ def main():
                       help="Ignore ssl errors for self signed certificate")
     (options, args) = parser.parse_args()
 
-    if options.filename is None:
+    if options.filename is None and not args:
         raise Exception('Filename required')
 
     # Create a pool
     pool = thread.ThreadPool(20)
 
-    with open(options.filename, 'r') as f:
-        for url in f.readlines():
+    if options.filename:
+        with open(options.filename, 'r') as f:
+            for url in f.readlines():
+                pool.queueTask(linkchecker_task, {
+                    'url': url.strip(),
+                    'ignore_ssl_errors': options.ignore_ssl_errors,
+                    'log_level': options.log_level})
+    else:
+        for url in args:
             pool.queueTask(linkchecker_task, {
                 'url': url.strip(),
                 'ignore_ssl_errors': options.ignore_ssl_errors,
