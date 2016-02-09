@@ -1,9 +1,22 @@
 #!/usr/bin/env python
+
+import signal
 from subprocess import Popen, PIPE
 from optparse import OptionParser
 import json
 
 from . import thread
+
+
+pool = None
+
+
+def signal_handler(signal, frame):
+    if not pool:
+        exit(0)
+    pool.joinAll(waitForTasks=False, waitForThreads=True)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def linkchecker_task(data):
@@ -35,6 +48,7 @@ def main():
         raise Exception('Filename required')
 
     # Create a pool
+    global pool
     pool = thread.ThreadPool(20)
 
     if options.filename:
