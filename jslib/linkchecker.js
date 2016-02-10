@@ -1,15 +1,19 @@
 var args = require('system').args;
 var page = require('webpage').create();
 
-if (args.length != 2) {
+var len = args.length;
+
+if ( len < 2) {
     console.log('Please specify the URL.');
     phantom.exit(1);
 }
 
-var url = args[1],
-    resources = [],
-    abort = false;
 
+var page_status,
+    url = args[len - 1],
+    resources = [],
+    abort = false,
+    urlOnly = (len === 3 && args[1] === '--url-only');
 
 page.onResourceRequested = function(requestData, networkRequest) {
     if (abort) {
@@ -24,9 +28,10 @@ page.onResourceReceived = function (response) {
     }
 
     if (response.stage === 'end') {
-        if (response.id === 1 && (response.status === 301 || response.status === 302)) {
+        if (response.id === 1 && (response.status === 301 || response.status === 302 || urlOnly)) {
             abort = true;
         }
+
         // For now only get a part of the response
         var o = {
             'url': url,
@@ -35,7 +40,12 @@ page.onResourceReceived = function (response) {
             'status_code': response.status,
             'status': response.statusText
         };
-        resources.push(o);
+        if (response.id === 1) {
+            page_status = o;
+        }
+        else {
+            resources.push(o);
+        }
     }
 };
 
@@ -47,13 +57,17 @@ page.onError = function(msg, trace) {
 
 page.open(url, function(status) {
     if (status === "success") {
-        var links = page.evaluate(function() {
-            var lis = document.querySelectorAll("a");
-            return Array.prototype.map.call(lis, function(a) {
-                return a.href;
+        var links = [];
+        if (! urlOnly) {
+            links = page.evaluate(function() {
+                var lis = document.querySelectorAll("a");
+                return Array.prototype.map.call(lis, function(a) {
+                    return a.href;
+                });
             });
-        });
+        }
         console.log(JSON.stringify({
+            'page': page_status,
             'resources': resources,
             'urls': links
         }, undefined, 4));
@@ -62,8 +76,9 @@ page.open(url, function(status) {
     else {
         if (abort) {
             console.log(JSON.stringify({
+                'page': page_status,
                 'resources': resources,
-                'urls': [resources[0].redirect_url]}, undefined, 4));
+                'urls': [page_status.redirect_url]}, undefined, 4));
             phantom.exit(0);
         }
         else {
