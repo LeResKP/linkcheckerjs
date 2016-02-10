@@ -122,6 +122,7 @@ class ThreadPoolThread(threading.Thread):
                 try:
                     cmd(*args, **kw)
                 except:
+                    # TODO: add logging
                     pass
 
         self.working = False
