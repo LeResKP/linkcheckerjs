@@ -17,6 +17,8 @@ class ThreadPool(object):
         self.__taskLock = threading.Condition(threading.Lock())
         self.__tasks = []
         self.__active = True
+        self.nb_tasks = 0
+        self.nb_done = 0
         self.start_threads(number_threads)
         signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -46,6 +48,7 @@ class ThreadPool(object):
         self.__taskLock.acquire()
         try:
             self.__tasks.append((task, args, kw))
+            self.nb_tasks += 1
             return True
         finally:
             self.__taskLock.release()
@@ -64,9 +67,10 @@ class ThreadPool(object):
 
     def print_status(self):
         nb_working = len([not t.working for t in self.threads])
-        s = '\rWorking thread %02i   Number tasks  %04i' % (
+        s = '\rWorking thread %02i   %04i / %04i tasks' % (
             nb_working,
-            len(self.__tasks)
+            self.nb_done,
+            self.nb_tasks,
         )
         sys.stdout.flush()
         print s,
@@ -124,6 +128,8 @@ class ThreadPoolThread(threading.Thread):
                 except:
                     # TODO: add logging
                     pass
+                finally:
+                    self.__pool.nb_done += 1
 
         self.working = False
 
