@@ -43,5 +43,6 @@ setup(
     # -*- Entry points: -*-
     [console_scripts]
     linkcheckerjs = linkcheckerjs.task:main
+    linkreaderjs = linkcheckerjs.reader:main
     """,
 )
