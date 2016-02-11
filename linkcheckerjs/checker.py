@@ -31,7 +31,7 @@ class Linkchecker(object):
         self.queued_urls = set()
         self.results = OrderedDict()
         self.errored_urls = {}
-        self.depth = 0
+        self.max_nb_urls = 200
 
     def check(self, url, domain):
         cmd = [PHANTOMJS]
@@ -69,8 +69,7 @@ class Linkchecker(object):
     def perform(self, url, domain, result):
         self.results[url] = result
         urls = self.filter_urls(set(result['urls']))
-        if self.depth < 2:
-            self.depth += 1
+        if len(self.checked_urls) < self.max_nb_urls:
             for u in urls:
                 self.pool.add_task(self.check, url=u, domain=domain)
 
