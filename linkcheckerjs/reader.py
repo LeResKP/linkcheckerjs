@@ -4,6 +4,7 @@ from optparse import OptionParser
 
 import json
 from urlparse import urlparse
+from collections import OrderedDict
 
 
 DEBUG = 3
@@ -118,19 +119,14 @@ def main():
     else:
         level = options.log_level
 
-    data = json.load(open('data.json'))
-    urls = data['urls']
-    results = data['results']
-
-    pages = {}
-    for url in results.keys():
-        page = Page(url, results[url], pages)
+    data = json.load(open('data.json'),
+                     object_pairs_hook=OrderedDict)
+    pages = OrderedDict()
+    for url, value in data.iteritems():
+        page = Page(url, value, pages)
         pages[url] = page
 
-    page_objects = pages.values()
-
-    # TODO: perhaps we want to display url from urls first
-    for page in page_objects:
+    for page in pages.itervalues():
         error = page.display(level)
         if error:
             print error

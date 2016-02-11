@@ -5,6 +5,7 @@ from subprocess import Popen, PIPE
 from optparse import OptionParser
 import json
 from urlparse import urlparse
+from collections import OrderedDict
 
 from . import thread
 
@@ -28,7 +29,7 @@ class Linkchecker(object):
         self.__checkLock = threading.Condition(threading.Lock())
         self.checked_urls = set()
         self.queued_urls = set()
-        self.results = {}
+        self.results = OrderedDict()
         self.errored_urls = {}
         self.depth = 0
 
@@ -108,7 +109,7 @@ def main():
     pool.join_all()
 
     with open('data.json', 'w') as f:
-        json.dump({'urls': urls, 'results': linkchecker.results}, f)
+        json.dump(linkchecker.results, f)
 
 
 if __name__ == "__main__":
