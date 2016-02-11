@@ -13,10 +13,11 @@ var page_status,
     url = args[len - 1],
     resources = [],
     abort = false,
+    abortUrlOnly = false,
     urlOnly = (len === 3 && args[1] === '--url-only');
 
 page.onResourceRequested = function(requestData, networkRequest) {
-    if (abort) {
+    if (abort || abortUrlOnly) {
         networkRequest.abort();
     }
 };
@@ -28,8 +29,12 @@ page.onResourceReceived = function (response) {
     }
 
     if (response.stage === 'end') {
-        if (response.id === 1 && (response.status === 301 || response.status === 302 || urlOnly)) {
+        if (response.id === 1 && (response.status === 301 || response.status === 302 )) {
             abort = true;
+        }
+
+        if (response.id === 1 && urlOnly) {
+            abortUrlOnly = true;
         }
 
         // For now only get a part of the response
@@ -76,7 +81,7 @@ page.open(url, function(status) {
         phantom.exit(0);
     }
     else {
-        if (abort && !urlOnly) {
+        if (abort) {
             // abort because of redirect
             console.log(JSON.stringify({
                 'page': page_status,
@@ -89,13 +94,15 @@ page.open(url, function(status) {
             console.log(JSON.stringify({
                 'page': {
                     'url': url,
+                    'response_url': url,
+                    'redirect_url': null,
                     'status_code': 500,
                     'status': 'Unable to open URL'
 
                 },
                 'resources': [],
                 'urls': []}));
-            phantom.exit(1);
+            phantom.exit(0);
         }
     }
 });
