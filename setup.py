@@ -42,7 +42,7 @@ setup(
     entry_points="""
     # -*- Entry points: -*-
     [console_scripts]
-    linkcheckerjs = linkcheckerjs.task:main
+    linkcheckerjs = linkcheckerjs.checker:main
     linkreaderjs = linkcheckerjs.reader:main
     """,
 )
