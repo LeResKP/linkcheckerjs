@@ -56,6 +56,8 @@ page.onError = function(msg, trace) {
 
 
 page.open(url, function(status) {
+    // When we abort with status_code == 200, success is triggered
+    // When we abort with status_code in [301, 302] fail is triggered
     if (status === "success") {
         var links = [];
         if (! urlOnly) {
@@ -75,6 +77,7 @@ page.open(url, function(status) {
     }
     else {
         if (abort && !urlOnly) {
+            // abort because of redirect
             console.log(JSON.stringify({
                 'page': page_status,
                 'resources': resources,
@@ -82,6 +85,7 @@ page.open(url, function(status) {
             phantom.exit(0);
         }
         else {
+            // Can't open the url
             console.log(JSON.stringify({
                 'page': {
                     'url': url,
