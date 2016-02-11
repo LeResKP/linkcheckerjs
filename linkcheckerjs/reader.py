@@ -98,7 +98,7 @@ class Page(object):
                 return None
 
         s.insert(0, dict_to_str(self.result, 4))
-        s.insert(0, self.url)
+        s.insert(0, 'Url: %s' % self.url)
 
         s.append('')
         s.append('')
@@ -129,7 +129,7 @@ def main():
     for page in pages.itervalues():
         error = page.display(level)
         if error:
-            print error
+            print error.encode('utf-8')
 
 
 if __name__ == '__main__':
