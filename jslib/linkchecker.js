@@ -74,7 +74,7 @@ page.open(url, function(status) {
         phantom.exit(0);
     }
     else {
-        if (abort) {
+        if (abort && !urlOnly) {
             console.log(JSON.stringify({
                 'page': page_status,
                 'resources': resources,
@@ -82,7 +82,15 @@ page.open(url, function(status) {
             phantom.exit(0);
         }
         else {
-            console.log("Could not open " + url);
+            console.log(JSON.stringify({
+                'page': {
+                    'url': url,
+                    'status_code': 500,
+                    'status': 'Unable to open URL'
+
+                },
+                'resources': [],
+                'urls': []}));
             phantom.exit(1);
         }
     }
