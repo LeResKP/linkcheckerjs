@@ -24,19 +24,11 @@ page.onResourceRequested = function(requestData, networkRequest) {
 
 
 page.onResourceReceived = function (response) {
-    if (abort) {
-        return;
+    if (response.id === 1 && (response.status === 301 || response.status === 302 || urlOnly)) {
+        abort = true;
     }
 
-    if (response.stage === 'end') {
-        if (response.id === 1 && (response.status === 301 || response.status === 302 )) {
-            abort = true;
-        }
-
-        if (response.id === 1 && urlOnly) {
-            abortUrlOnly = true;
-        }
-
+    if (response.stage === 'end' && response.status !== null) {
         // For now only get a part of the response
         var o = {
             'url': url,
@@ -81,7 +73,7 @@ page.open(url, function(status) {
         phantom.exit(0);
     }
     else {
-        if (abort) {
+        if (abort && typeof page_status !== 'undefined') {
             // abort because of redirect
             console.log(JSON.stringify({
                 'page': page_status,
