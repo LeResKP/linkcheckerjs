@@ -51,6 +51,9 @@ page.onError = function(msg, trace) {
     // Ignore javascript errors for now.
 };
 
+// timeout = 5s
+page.settings.resourceTimeout = 5000;
+
 
 page.open(url, function(status) {
     // When we abort with status_code == 200, success is triggered
