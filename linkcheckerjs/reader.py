@@ -37,6 +37,9 @@ def dict_to_str(dic, indent=0):
 
 
 def get_display_level(dic):
+    if dic.get('is_unsecure') is True:
+        return ERROR
+
     if dic['status_code'] == 200:
         return DEBUG
 
@@ -57,19 +60,14 @@ class Page(object):
         self.result = result['page']
         self.resources = result['resources']
         self.urls = result['urls']
-        self.check_unsecure()
+        self.set_unsecure()
 
-    def check_unsecure(self):
-
+    def set_unsecure(self):
         for res in self.resources:
-            if res['status_code'] and get_scheme(res['url']) == 'https':
+            if get_scheme(res['url']) == 'https':
                 # TODO: can we have url starting with '//'
                 if get_scheme(res['response_url']) != 'https':
-                    res['status'] = '---'.join(['Unsecure resources',
-                                               str(res['status_code']),
-                                               res['status']])
-                    # Find a good status code
-                    res['status_code'] = 500
+                    res['is_unsecure'] = True
 
     def display(self, level):
         s = []
