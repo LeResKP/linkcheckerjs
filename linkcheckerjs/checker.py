@@ -8,10 +8,14 @@ from urlparse import urlparse
 from collections import OrderedDict
 
 from . import thread
+import re
 
 
 PHANTOMJS = './node_modules/.bin/phantomjs'
 LINKCHECKERJS = 'jslib/linkchecker.js'
+
+
+RE_CACHE = {}
 
 
 def get_domain(url):
@@ -19,14 +23,25 @@ def get_domain(url):
     return parsed_uri.netloc
 
 
+def match_pattern(pattern, url):
+    global RE_CACHE
+    if pattern not in RE_CACHE:
+        RE_CACHE[pattern] = re.compile(pattern)
+
+    regex = RE_CACHE[pattern]
+    return regex.search(url)
+
+
 class Linkchecker(object):
 
-    def __init__(self, pool, ignore_ssl_errors=False, recursive=False):
+    def __init__(self, pool, ignore_ssl_errors=False, recursive=False,
+                 ignore_url_patterns=None):
         self.pool = pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
         self.recursive = recursive
+        self.ignore_url_patterns = ignore_url_patterns
         self.__checkLock = threading.Condition(threading.Lock())
         self.checked_urls = set()
         self.queued_urls = set()
@@ -68,11 +83,21 @@ class Linkchecker(object):
         finally:
             self.__checkLock.release()
 
+    def filter_ignore_urls_patterns(self, urls):
+        if not self.ignore_url_patterns:
+            return urls
+
+        return set([
+            u for u in urls
+            if not any([match_pattern(p, u) for p in
+                        self.ignore_url_patterns])])
+
     def perform(self, url, domain, result):
         if not self.recursive:
             return False
 
-        urls = self.filter_urls(set(result['urls']))
+        urls = self.filter_ignore_urls_patterns(set(result['urls']))
+        urls = self.filter_urls(urls)
         if len(self.checked_urls) < self.max_nb_urls:
             for u in urls:
                 self.pool.add_task(self.check, url=u, domain=domain)
@@ -87,7 +112,11 @@ def main():
                       help="Ignore ssl errors for self signed certificate")
     parser.add_option("-r", "--recursive", action="store_true",
                       dest="recursive",
-                      help="Parse the found links recursively")
+                      help="Crawl the found links recursively")
+
+    parser.add_option("--ignore-url-pattern", action="append",
+                      dest="ignore_url_patterns",
+                      help="Pattern to ignore when crawling pages")
     (options, args) = parser.parse_args()
 
     if options.filename is None and not args:
@@ -99,6 +128,7 @@ def main():
     linkchecker = Linkchecker(
         pool,
         recursive=options.recursive,
+        ignore_url_patterns=options.ignore_url_patterns,
         ignore_ssl_errors=options.ignore_ssl_errors)
 
     urls = []
