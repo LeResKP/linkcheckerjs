@@ -21,11 +21,12 @@ def get_domain(url):
 
 class Linkchecker(object):
 
-    def __init__(self, pool, ignore_ssl_errors=False):
+    def __init__(self, pool, ignore_ssl_errors=False, recursive=False):
         self.pool = pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
+        self.recursive = recursive
         self.__checkLock = threading.Condition(threading.Lock())
         self.checked_urls = set()
         self.queued_urls = set()
@@ -54,6 +55,7 @@ class Linkchecker(object):
             # TODO: add logging
             pass
         self.checked_urls.add(url)
+        self.results[url] = result
         self.perform(url, domain, result)
 
     def filter_urls(self, urls):
@@ -67,7 +69,9 @@ class Linkchecker(object):
             self.__checkLock.release()
 
     def perform(self, url, domain, result):
-        self.results[url] = result
+        if not self.recursive:
+            return False
+
         urls = self.filter_urls(set(result['urls']))
         if len(self.checked_urls) < self.max_nb_urls:
             for u in urls:
@@ -81,6 +85,9 @@ def main():
     parser.add_option("-i", "--ignore-ssl-errors", action="store_true",
                       dest="ignore_ssl_errors",
                       help="Ignore ssl errors for self signed certificate")
+    parser.add_option("-r", "--recursive", action="store_true",
+                      dest="recursive",
+                      help="Parse the found links recursively")
     (options, args) = parser.parse_args()
 
     if options.filename is None and not args:
@@ -91,6 +98,7 @@ def main():
 
     linkchecker = Linkchecker(
         pool,
+        recursive=options.recursive,
         ignore_ssl_errors=options.ignore_ssl_errors)
 
     urls = []
