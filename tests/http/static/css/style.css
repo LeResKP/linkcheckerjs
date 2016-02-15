@@ -1,0 +1,11 @@
+body {
+  margin: 0;
+}
+
+.image1 {
+  background: url(/static/images/image1.png);
+}
+
+.unexisting-image {
+  background: url(/static/images/unexisting.png);
+}

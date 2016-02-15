@@ -18,9 +18,31 @@ LINKCHECKERJS = 'jslib/linkchecker.js'
 RE_CACHE = {}
 
 
-def get_domain(url):
+class PhantomjsException(Exception):
+    pass
+
+
+def phantomjs_checker(url, domain, ignore_ssl_errors=False):
+    cmd = [PHANTOMJS]
+    if ignore_ssl_errors is True:
+        cmd += ['--ignore-ssl-errors=yes']
+    cmd += [LINKCHECKERJS]
+    if domain != get_hostname(url):
+        cmd += ['--url-only']
+    cmd += [url]
+
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    (stdout, stderr) = process.communicate()
+    if process.returncode != 0:
+        raise PhantomjsException('Bad return code %i:\n%s\n %s' % (
+            process.returncode, stdout, stderr))
+
+    return json.loads(stdout)
+
+
+def get_hostname(url):
     parsed_uri = urlparse(url)
-    return parsed_uri.netloc
+    return parsed_uri.hostname
 
 
 def match_pattern(pattern, url):
@@ -50,25 +72,12 @@ class Linkchecker(object):
         self.max_nb_urls = 200
 
     def check(self, url, domain):
-        cmd = [PHANTOMJS]
-        if self.ignore_ssl_errors is True:
-            cmd += ['--ignore-ssl-errors=yes']
-        cmd += [LINKCHECKERJS]
-        if domain != get_domain(url):
-            cmd += ['--url-only']
-        cmd += [url]
-
-        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = process.communicate()
-        if process.returncode != 0:
-            self.errored_urls[url] = stdout
+        try:
+            result = phantomjs_checker(url, domain, self.ignore_ssl_errors)
+        except Exception, e:
+            self.errored_urls[url] = e
             return False
 
-        try:
-            result = json.loads(stdout)
-        except:
-            # TODO: add logging
-            pass
         self.checked_urls.add(url)
         self.results[url] = result
         self.perform(url, domain, result)
@@ -76,6 +85,8 @@ class Linkchecker(object):
     def filter_urls(self, urls):
         self.__checkLock.acquire()
         try:
+            # TODO: we should either remove errored_urls or retry to get it
+            # then if okay remove it from errored_urls
             urls -= self.checked_urls
             urls -= self.queued_urls
             self.queued_urls |= urls
@@ -140,7 +151,7 @@ def main():
 
     for url in urls:
         url = url.strip()
-        domain = get_domain(url)
+        domain = get_hostname(url)
         pool.add_task(linkchecker.check, url=url, domain=domain)
 
     pool.join_all()

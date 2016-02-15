@@ -39,6 +39,10 @@ setup(
     install_requires=[
         # -*- Extra requirements: -*-
     ],
+    test_suite='nose.collector',
+    tests_require=[
+        'nose',
+    ],
     entry_points="""
     # -*- Entry points: -*-
     [console_scripts]
