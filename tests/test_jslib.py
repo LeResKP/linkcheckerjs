@@ -53,10 +53,11 @@ class TestJSLib(TestCase):
                  u'status_code': 200,
                  u'url': u'http://localhost:8080'}
             ],
-            u'urls': [u'http://localhost:8080/page1',
-                      u'http://localhost:8080/page2',
+            u'urls': [u'http://localhost:8080/page1.html',
+                      u'http://localhost:8080/page2.html',
                       u'http://localhost:8080/unexisting']
         }
+        self.maxDiff = None
         self.assertEqual(res, expected)
 
     def test_301_redirect(self):
@@ -187,5 +188,22 @@ class TestJSLib(TestCase):
                  u'status_code': 200,
                  u'url': u'http://localhost:8080/page3.html'}],
             u'urls': []}
+
+        self.assertEqual(res, expected)
+
+    def test_unexisting(self):
+        res = phantomjs_checker('http://localhost:8080/unexisting.html', 'localhost')
+        pprint.pprint(res)
+        expected = {
+            "page": {
+                "url": "http://localhost:8080/unexisting.html",
+                "response_url": "http://localhost:8080/unexisting.html",
+                "redirect_url": None,
+                "status_code": 404,
+                "status": "Not Found"
+            },
+            "resources": [],
+            "urls": []
+        }
 
         self.assertEqual(res, expected)
