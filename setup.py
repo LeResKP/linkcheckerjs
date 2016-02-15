@@ -15,6 +15,7 @@ class NpmInstall(_build):
         packages = []
         for name, version in package.get('dependencies', {}).items():
             packages.append('%s@%s' % (name, version))
+        print 'Installing node packages: %s' % ' '.join(packages)
         p = subprocess.Popen(["npm install --prefix build/lib/linkcheckerjs/ %s" % ' '.join(packages)], shell=True)
         p.communicate()
         _build.run(self)
