@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import threading
 from subprocess import Popen, PIPE
 from optparse import OptionParser
@@ -10,9 +11,11 @@ from collections import OrderedDict
 from . import thread
 import re
 
+path = os.path.abspath(__file__)
+dir_path = os.path.dirname(path)
 
-PHANTOMJS = './node_modules/.bin/phantomjs'
-LINKCHECKERJS = 'jslib/linkchecker.js'
+PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
+LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
 
 
 RE_CACHE = {}

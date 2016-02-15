@@ -160,7 +160,11 @@ class TestJSLib(TestCase):
                  u'url': u'http://localhost:8080/page2.html'}],
             u'urls': []}
 
-        self.assertEqual(res, expected)
+        self.assertEqual(res.keys(), expected.keys())
+        self.assertEqual(res['page'], expected['page'])
+        self.assertEqual(res['urls'], expected['urls'])
+        self.assertEqual(sorted(res['resources']),
+                         sorted(expected['resources']))
 
     def test_page3(self):
         res = phantomjs_checker('http://localhost:8080/page3.html', 'localhost')

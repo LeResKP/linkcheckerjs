@@ -1,28 +1,55 @@
 import os
 import json
 from setuptools import setup, find_packages
-from distutils.command.build import build as _build
+from distutils.command.build_py import build_py as _build_py
+from distutils.command.build_ext import build_ext as _build_ext
 
 import subprocess
+
+# Hack to prevent TypeError: 'NoneType' object is not callable error
+# on exit of python setup.py test
+try:
+    import multiprocessing
+except ImportError:
+    pass
+
 
 version = '0.0'
 
 
-class NpmInstall(_build):
+class CreateSymlink(_build_ext):
 
     def run(self):
-        package = json.load(open('package.json'))
-        packages = []
-        for name, version in package.get('dependencies', {}).items():
-            packages.append('%s@%s' % (name, version))
-        print 'Installing node packages: %s' % ' '.join(packages)
-        p = subprocess.Popen(["npm install --prefix build/lib/linkcheckerjs/ %s" % ' '.join(packages)], shell=True)
+        print 'Create symlinks'
+        if not os.path.exists('linkcheckerjs/node_modules'):
+            os.symlink('../node_modules', 'linkcheckerjs/node_modules')
+        if not os.path.exists('linkcheckerjs/jslib'):
+            os.symlink('../jslib', 'linkcheckerjs/jslib')
+        _build_ext.run(self)
+
+
+class NpmInstall(_build_py):
+
+    def run(self):
+        print 'Installing node packages'
+        p = subprocess.Popen(["npm install"], shell=True)
         p.communicate()
-        _build.run(self)
+
+        path = os.path.join(self.build_lib, 'linkcheckerjs')
+        print 'Create folder', path
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        print 'Create symlinks'
+        if not os.path.exists('build/lib/linkcheckerjs/node_modules'):
+            os.symlink('../../../node_modules', 'build/lib/linkcheckerjs/node_modules')
+        if not os.path.exists('build/lib/linkcheckerjs/jslib'):
+            os.symlink('../../../jslib', 'build/lib/linkcheckerjs/jslib')
+        _build_py.run(self)
 
 
 setup(
-    cmdclass={'build': NpmInstall},
+    cmdclass={'build_py': NpmInstall, 'build_ext': CreateSymlink},
     name='linkcheckerjs',
     version=version,
     description="",
