@@ -76,12 +76,17 @@ page.open(url, function(status) {
         phantom.exit(0);
     }
     else {
-        if (abort && typeof page_status !== 'undefined') {
+        if (typeof page_status !== 'undefined') {
+            var urls = [];
+            if (page_status.redirect_url) {
+                urls.push(page_status.redirect_url);
+            }
             // abort because of redirect
             console.log(JSON.stringify({
                 'page': page_status,
                 'resources': resources,
-                'urls': [page_status.redirect_url]}, undefined, 4));
+                'urls': urls
+            }, undefined, 4));
             phantom.exit(0);
         }
         else {
