@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-
-./node_modules/.bin/phantomjs lib/linkchecker.js $*
+./node_modules/.bin/phantomjs ./jslib/linkchecker.js $*
