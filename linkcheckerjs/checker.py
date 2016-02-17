@@ -59,14 +59,14 @@ def match_pattern(pattern, url):
 
 class Linkchecker(object):
 
-    def __init__(self, pool, ignore_ssl_errors=False, recursive=False,
-                 ignore_url_patterns=None):
+    def __init__(self, pool, ignore_ssl_errors=False,
+                 ignore_url_patterns=None, maxdepth=None):
         self.pool = pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
-        self.recursive = recursive
         self.ignore_url_patterns = ignore_url_patterns
+        self.maxdepth = maxdepth
         self.__checkLock = threading.Condition(threading.Lock())
         self.checked_urls = set()
         self.queued_urls = set()
@@ -74,7 +74,7 @@ class Linkchecker(object):
         self.errored_urls = {}
         self.max_nb_urls = 200
 
-    def check(self, url, domain):
+    def check(self, url, domain, depth=0):
         try:
             result = phantomjs_checker(url, domain, self.ignore_ssl_errors)
         except Exception, e:
@@ -83,7 +83,7 @@ class Linkchecker(object):
 
         self.checked_urls.add(url)
         self.results[url] = result
-        self.perform(url, domain, result)
+        self.perform(url, domain, result, depth)
 
     def filter_urls(self, urls):
         self.__checkLock.acquire()
@@ -106,15 +106,16 @@ class Linkchecker(object):
             if not any([match_pattern(p, u) for p in
                         self.ignore_url_patterns])])
 
-    def perform(self, url, domain, result):
-        if not self.recursive:
+    def perform(self, url, domain, result, depth):
+        if self.maxdepth is not None and depth >= self.maxdepth:
             return False
 
         urls = self.filter_ignore_urls_patterns(set(result['urls']))
         urls = self.filter_urls(urls)
         if len(self.checked_urls) < self.max_nb_urls:
             for u in urls:
-                self.pool.add_task(self.check, url=u, domain=domain)
+                self.pool.add_task(self.check, url=u, domain=domain,
+                                   depth=depth+1)
 
 
 def main():
@@ -124,10 +125,7 @@ def main():
     parser.add_option("-i", "--ignore-ssl-errors", action="store_true",
                       dest="ignore_ssl_errors",
                       help="Ignore ssl errors for self signed certificate")
-    parser.add_option("-r", "--recursive", action="store_true",
-                      dest="recursive",
-                      help="Crawl the found links recursively")
-
+    parser.add_option("-d", "--max-depth", dest="maxdepth", type="int")
     parser.add_option("--ignore-url-pattern", action="append",
                       dest="ignore_url_patterns",
                       help="Pattern to ignore when crawling pages")
@@ -141,9 +139,10 @@ def main():
 
     linkchecker = Linkchecker(
         pool,
-        recursive=options.recursive,
         ignore_url_patterns=options.ignore_url_patterns,
-        ignore_ssl_errors=options.ignore_ssl_errors)
+        ignore_ssl_errors=options.ignore_ssl_errors,
+        maxdepth=options.maxdepth,
+    )
 
     urls = []
     if options.filename:
