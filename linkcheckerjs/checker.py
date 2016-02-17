@@ -5,14 +5,22 @@ import threading
 from subprocess import Popen, PIPE
 from optparse import OptionParser
 import json
+import re
+import logging
 from urlparse import urlparse
 from collections import OrderedDict
 
 from . import thread
-import re
 
 path = os.path.abspath(__file__)
 dir_path = os.path.dirname(path)
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setLevel(logging.ERROR)
+log.addHandler(handler)
+
 
 PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
 LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
@@ -25,12 +33,12 @@ class PhantomjsException(Exception):
     pass
 
 
-def phantomjs_checker(url, domain, ignore_ssl_errors=False):
+def phantomjs_checker(url, ignore_ssl_errors=False, url_only=False):
     cmd = [PHANTOMJS]
     if ignore_ssl_errors is True:
         cmd += ['--ignore-ssl-errors=yes']
     cmd += [LINKCHECKERJS]
-    if domain != get_hostname(url):
+    if url_only:
         cmd += ['--url-only']
     cmd += [url]
 
@@ -72,11 +80,21 @@ class Linkchecker(object):
         self.queued_urls = set()
         self.results = OrderedDict()
         self.errored_urls = {}
-        self.max_nb_urls = 200
+        # Security to not crawl all the web
+        self.max_nb_urls = 50000
 
     def check(self, url, domain, depth=0):
+        url_only = False
+        if self.maxdepth is not None and depth > self.maxdepth:
+            url_only = True
+        elif domain != get_hostname(url):
+            url_only = True
+
         try:
-            result = phantomjs_checker(url, domain, self.ignore_ssl_errors)
+            log.debug('Will check %s (ignore ssl: %s url-only: %s)' % (
+                url, self.ignore_ssl_errors, url_only))
+            result = phantomjs_checker(url, self.ignore_ssl_errors,
+                                       url_only=url_only)
         except Exception, e:
             self.errored_urls[url] = e
             return False
@@ -107,7 +125,7 @@ class Linkchecker(object):
                         self.ignore_url_patterns])])
 
     def perform(self, url, domain, result, depth):
-        if self.maxdepth is not None and depth >= self.maxdepth:
+        if self.maxdepth is not None and depth > self.maxdepth:
             return False
 
         urls = self.filter_ignore_urls_patterns(set(result['urls']))
@@ -129,10 +147,16 @@ def main():
     parser.add_option("--ignore-url-pattern", action="append",
                       dest="ignore_url_patterns",
                       help="Pattern to ignore when crawling pages")
+    parser.add_option("-v", "--verbose", action="store_true",
+                      dest="verbose")
     (options, args) = parser.parse_args()
 
     if options.filename is None and not args:
         raise Exception('Filename required')
+
+    if options.verbose:
+        print 'set handler'
+        handler.setLevel(logging.DEBUG)
 
     # Create a pool
     pool = thread.ThreadPool(20)
