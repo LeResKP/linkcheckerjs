@@ -13,11 +13,10 @@ var page_status,
     url = args[len - 1],
     resources = [],
     abort = false,
-    abortUrlOnly = false,
     urlOnly = (len === 3 && args[1] === '--url-only');
 
 page.onResourceRequested = function(requestData, networkRequest) {
-    if (abort || abortUrlOnly) {
+    if (abort) {
         networkRequest.abort();
     }
 };
