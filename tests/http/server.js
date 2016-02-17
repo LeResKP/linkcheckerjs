@@ -1,4 +1,6 @@
+// https://docs.nodejitsu.com/articles/HTTP/servers/how-to-create-a-HTTPS-server
 var http = require('http');
+var https = require('https');
 var path = require('path');
 var fs = require('fs');
 
@@ -58,8 +60,18 @@ function handleRequest(request, response){
     });
 }
 
-var server = http.createServer(handleRequest);
 
-server.listen(PORT, function(){
+var options = {
+  key: fs.readFileSync(path.resolve(__dirname, 'key.pem')),
+  cert: fs.readFileSync(path.resolve(__dirname, 'cert.pem'))
+};
+
+var httpsServer = https.createServer(options, handleRequest);
+httpsServer.listen(8081, function() {
+    console.log("Server listening on: https://localhost:8081");
+});
+
+var httpServer = http.createServer(handleRequest);
+httpServer.listen(PORT, function(){
     console.log("Server listening on: http://localhost:%s", PORT);
 });

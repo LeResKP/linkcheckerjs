@@ -32,7 +32,7 @@ def teardown_module(module):
 class TestJSLib(TestCase):
 
     def test_200_ok(self):
-        res = phantomjs_checker('http://localhost:8080', 'localhost')
+        res = phantomjs_checker('http://localhost:8080')
         pprint.pprint(res)
         expected = {
             u'page': {
@@ -60,8 +60,68 @@ class TestJSLib(TestCase):
         self.maxDiff = None
         self.assertEqual(res, expected)
 
+    def test_200_ok_url_only(self):
+        res = phantomjs_checker('http://localhost:8080', url_only=True)
+        pprint.pprint(res)
+        expected = {
+            u'page': {
+                u'redirect_url': None,
+                u'response_url': u'http://localhost:8080/',
+                u'status': u'OK',
+                u'status_code': 200,
+                u'url': u'http://localhost:8080'},
+            u'resources': [],
+            u'urls': []
+        }
+        self.maxDiff = None
+        self.assertEqual(res, expected)
+
+    def test_500_ssl_error(self):
+        res = phantomjs_checker('https://localhost:8081')
+        pprint.pprint(res)
+        expected = {
+            u'page': {
+                u'redirect_url': None,
+                u'response_url': u'https://localhost:8081',
+                u'status': u'Unable to open URL',
+                u'status_code': 500,
+                u'url': u'https://localhost:8081'},
+            u'resources': [],
+            u'urls': []}
+        self.assertEqual(res, expected)
+
+    def test_200_ok_ignore_ssl(self):
+        res = phantomjs_checker('https://localhost:8081',
+                                ignore_ssl_errors=True)
+        pprint.pprint(res)
+        expected = {
+            u'page': {
+                u'redirect_url': None,
+                u'response_url': u'https://localhost:8081/',
+                u'status': u'OK',
+                u'status_code': 200,
+                u'url': u'https://localhost:8081'},
+            u'resources': [
+                {u'redirect_url': None,
+                 u'response_url': u'https://localhost:8081/static/css/unexisting.css',
+                 u'status': u'Not Found',
+                 u'status_code': 404,
+                 u'url': u'https://localhost:8081'},
+                {u'redirect_url': None,
+                 u'response_url': u'https://localhost:8081/static/css/style.css',
+                 u'status': u'OK',
+                 u'status_code': 200,
+                 u'url': u'https://localhost:8081'}
+            ],
+            u'urls': [u'https://localhost:8081/page1.html',
+                      u'https://localhost:8081/page2.html',
+                      u'https://localhost:8081/unexisting']
+        }
+        self.maxDiff = None
+        self.assertEqual(res, expected)
+
     def test_301_redirect(self):
-        res = phantomjs_checker('http://localhost:8080/redirect-301', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/redirect-301')
         pprint.pprint(res)
         expected = {
             u'page': {
@@ -75,7 +135,7 @@ class TestJSLib(TestCase):
         self.assertEqual(res, expected)
 
     def test_302_redirect(self):
-        res = phantomjs_checker('http://localhost:8080/redirect-302', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/redirect-302')
         pprint.pprint(res)
         expected = {
             u'page': {
@@ -89,7 +149,7 @@ class TestJSLib(TestCase):
         self.assertEqual(res, expected)
 
     def test_page1(self):
-        res = phantomjs_checker('http://localhost:8080/page1.html', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/page1.html')
         pprint.pprint(res)
         expected = {
             u'page': {
@@ -118,7 +178,7 @@ class TestJSLib(TestCase):
         self.assertEqual(res, expected)
 
     def test_page2(self):
-        res = phantomjs_checker('http://localhost:8080/page2.html', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/page2.html')
         pprint.pprint(res)
         expected = {
             u'page': {
@@ -167,7 +227,7 @@ class TestJSLib(TestCase):
                          sorted(expected['resources']))
 
     def test_page3(self):
-        res = phantomjs_checker('http://localhost:8080/page3.html', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/page3.html')
         pprint.pprint(res)
         expected = {
             u'page': {u'redirect_url': None,
@@ -196,7 +256,7 @@ class TestJSLib(TestCase):
         self.assertEqual(res, expected)
 
     def test_unexisting(self):
-        res = phantomjs_checker('http://localhost:8080/unexisting.html', 'localhost')
+        res = phantomjs_checker('http://localhost:8080/unexisting.html')
         pprint.pprint(res)
         expected = {
             "page": {
