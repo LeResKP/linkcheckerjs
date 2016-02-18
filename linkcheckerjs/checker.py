@@ -144,6 +144,7 @@ def main():
                       dest="ignore_ssl_errors",
                       help="Ignore ssl errors for self signed certificate")
     parser.add_option("-d", "--max-depth", dest="maxdepth", type="int")
+    parser.add_option("-t", "--thread", dest="thread", type="int", default=8)
     parser.add_option("--ignore-url-pattern", action="append",
                       dest="ignore_url_patterns",
                       help="Pattern to ignore when crawling pages")
@@ -155,11 +156,10 @@ def main():
         raise Exception('Filename required')
 
     if options.verbose:
-        print 'set handler'
         handler.setLevel(logging.DEBUG)
 
     # Create a pool
-    pool = thread.ThreadPool(20)
+    pool = thread.ThreadPool(options.thread)
 
     linkchecker = Linkchecker(
         pool,
