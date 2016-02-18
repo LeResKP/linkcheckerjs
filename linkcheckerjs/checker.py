@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 import os
-import threading
-from subprocess import Popen, PIPE
-from optparse import OptionParser
-import json
 import re
+import json
 import logging
+import requests
+import threading
+
 from urlparse import urlparse
+from optparse import OptionParser
+from subprocess import Popen, PIPE
 from collections import OrderedDict
 
 from . import thread
@@ -29,10 +31,13 @@ PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
 LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
 
 
-RE_CACHE = {}
+class CheckerException(Exception):
+    pass
 
+class PhantomjsException(CheckerException):
+    pass
 
-class PhantomjsException(Exception):
+class RequestException(CheckerException):
     pass
 
 
@@ -54,87 +59,98 @@ def phantomjs_checker(url, ignore_ssl_errors=False, url_only=False):
     return json.loads(stdout)
 
 
-def get_hostname(url):
-    parsed_uri = urlparse(url)
-    return parsed_uri.hostname
+def requests_checker(url, ignore_ssl_errors=False):
+    try:
+        #TODO: better allow_redirects handling
+        r = requests.head(url, allow_redirects=False, verify=not ignore_ssl_errors, timeout=5)
+    except requests.Timeout:
+        raise RequestException('timeout')
 
-
-def match_pattern(pattern, url):
-    global RE_CACHE
-    if pattern not in RE_CACHE:
-        RE_CACHE[pattern] = re.compile(pattern)
-
-    regex = RE_CACHE[pattern]
-    return regex.search(url)
+    return {
+        u'page': {
+            u'redirect_url': r.headers.get('location'),
+            u'response_url': r.url,
+            u'status': r.reason,
+            u'status_code': r.status_code,
+            u'url': url,
+        },
+        u'resources': [],
+        u'urls': [],
+    }
 
 
 class Linkchecker(object):
 
-    def __init__(self, pool, ignore_ssl_errors=False,
-                 ignore_url_patterns=None, maxdepth=None):
-        self.pool = pool
+    def __init__(self, phantom_pool, request_pool, ignore_ssl_errors=False,
+                 ignore_url_patterns=None, domains=None, maxdepth=None):
+        self.phantom_pool = phantom_pool
+        self.request_pool = request_pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
-        self.ignore_url_patterns = ignore_url_patterns
-        self.maxdepth = maxdepth
+        self.ignored_urls_regex = set(re.compile(p) for p in ignore_url_patterns)
+        self.valid_domains = domains
+        self.maxdepth = (maxdepth is None) and -1 or maxdepth
+
         self.__checkLock = threading.Condition(threading.Lock())
-        self.checked_urls = set()
-        self.queued_urls = set()
         self.results = OrderedDict()
         self.errored_urls = {}
+
         # Security to not crawl all the web
         self.max_nb_urls = 50000
 
-    def check(self, url, domain, depth=0):
-        url_only = False
-        if self.maxdepth is not None and depth > self.maxdepth:
-            url_only = True
-        elif domain != get_hostname(url):
-            url_only = True
-
+    def check(self, url, depth=0):
         try:
-            result = phantomjs_checker(url, self.ignore_ssl_errors,
-                                       url_only=url_only)
-        except Exception, e:
+            result = phantomjs_checker(url, self.ignore_ssl_errors)
+            result.update({
+                'crawler': 'PHANTOM',
+            })
+            self.results[url] = result
+            self.feed_result(result, depth+1)
+        except CheckerException as e:
             self.errored_urls[url] = e
-            return False
 
-        self.checked_urls.add(url)
-        self.results[url] = result
-        self.perform(url, domain, result, depth)
+    def quick_check(self, url, reason):
+        try:
+            result = requests_checker(url, self.ignore_ssl_errors)
+            result.update({
+                'crawler': 'REQUESTS',
+                'quick': reason,
+            })
+            self.results[url] = result
+        except CheckerException as e:
+            self.errored_urls[url] = e
 
-    def filter_urls(self, urls):
+    def feed_result(self, result, new_depth):
+        urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
+
+        # Feed discovered url to the checker
         self.__checkLock.acquire()
         try:
-            # TODO: we should either remove errored_urls or retry to get it
-            # then if okay remove it from errored_urls
-            urls -= self.checked_urls
-            urls -= self.queued_urls
-            self.queued_urls |= urls
-            return urls
+            for next_url in urls_to_check:
+                if next_url in self.results:
+                    continue
+                self.results[next_url] = None
+                self.schedule(next_url, new_depth)
         finally:
             self.__checkLock.release()
 
+    def schedule(self, url, new_depth=0):
+        if urlparse(url).hostname not in self.valid_domains:
+            self.request_pool.add_task(self.quick_check, url=url, reason='OTHER_DOMAIN')
+        elif new_depth > self.maxdepth:
+            self.request_pool.add_task(self.quick_check, url=url, reason='TOO_FAR_IN_OUR_DOMAINS')
+        else:
+            self.phantom_pool.add_task(self.check, url=url, depth=new_depth)
+
     def filter_ignore_urls_patterns(self, urls):
-        if not self.ignore_url_patterns:
-            return urls
+        # TODO: improve with domains
+        return (u for u in urls
+            if not any(r.search(u) for r in self.ignored_urls_regex))
 
-        return set([
-            u for u in urls
-            if not any([match_pattern(p, u) for p in
-                        self.ignore_url_patterns])])
-
-    def perform(self, url, domain, result, depth):
-        if self.maxdepth is not None and depth > self.maxdepth:
-            return False
-
-        urls = self.filter_ignore_urls_patterns(set(result['urls']))
-        urls = self.filter_urls(urls)
-        if len(self.checked_urls) < self.max_nb_urls:
-            for u in urls:
-                self.pool.add_task(self.check, url=u, domain=domain,
-                                   depth=depth+1)
+    def wait(self):
+        self.request_pool.join_all()
+        self.phantom_pool.join_all()
 
 
 def main():
@@ -160,30 +176,33 @@ def main():
         handler.setLevel(logging.DEBUG)
         thread.handler.setLevel(logging.DEBUG)
 
-    # Create a pool
-    log.debug('Starting pool with %i threads' % options.thread)
-    pool = thread.ThreadPool(options.thread)
 
-    linkchecker = Linkchecker(
-        pool,
-        ignore_url_patterns=options.ignore_url_patterns,
-        ignore_ssl_errors=options.ignore_ssl_errors,
-        maxdepth=options.maxdepth,
-    )
-
-    urls = []
     if options.filename:
         with open(options.filename, 'r') as f:
             urls = [url for url in f.readlines()]
     else:
         urls = args
 
+    # Create a pool
+    log.debug('Starting pool with %i threads' % options.thread)
+    phantom_pool = thread.ThreadPool(options.thread)
+    request_pool = thread.ThreadPool(options.thread * 5)
+
+    linkchecker = Linkchecker(
+        phantom_pool,
+        request_pool,
+        ignore_url_patterns=options.ignore_url_patterns,
+        ignore_ssl_errors=options.ignore_ssl_errors,
+        maxdepth=options.maxdepth,
+        domains=set(urlparse(url).hostname for url in urls),
+    )
+
     for url in urls:
         url = url.strip()
-        domain = get_hostname(url)
-        pool.add_task(linkchecker.check, url=url, domain=domain)
+        linkchecker.schedule(url)
 
-    pool.join_all()
+
+    linkchecker.wait()
 
     with open('data.json', 'w') as f:
         json.dump(linkchecker.results, f)
