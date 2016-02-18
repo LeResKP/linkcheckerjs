@@ -66,6 +66,7 @@ setup(
     zip_safe=False,
     install_requires=[
         # -*- Extra requirements: -*-
+        'requests',
     ],
     test_suite='nose.collector',
     tests_require=[
