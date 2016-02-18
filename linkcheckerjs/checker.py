@@ -17,8 +17,11 @@ dir_path = os.path.dirname(path)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(thread)d - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler = logging.StreamHandler()
-handler.setLevel(logging.ERROR)
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
 log.addHandler(handler)
 
 
@@ -91,8 +94,6 @@ class Linkchecker(object):
             url_only = True
 
         try:
-            log.debug('Will check %s (ignore ssl: %s url-only: %s)' % (
-                url, self.ignore_ssl_errors, url_only))
             result = phantomjs_checker(url, self.ignore_ssl_errors,
                                        url_only=url_only)
         except Exception, e:
@@ -157,8 +158,10 @@ def main():
 
     if options.verbose:
         handler.setLevel(logging.DEBUG)
+        thread.handler.setLevel(logging.DEBUG)
 
     # Create a pool
+    log.debug('Starting pool with %i threads' % options.thread)
     pool = thread.ThreadPool(options.thread)
 
     linkchecker = Linkchecker(

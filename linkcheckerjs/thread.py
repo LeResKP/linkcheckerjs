@@ -4,6 +4,17 @@ import sys
 import threading
 from time import sleep
 import signal
+import logging
+
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(thread)d - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+log.addHandler(handler)
 
 
 class ThreadPool(object):
@@ -36,8 +47,7 @@ class ThreadPool(object):
 
     def signal_handler(self, signal, frame):
         self.__active = False
-        print ''
-        print 'Finishing started tasks, stopping soon'
+        log.info('Finishing started tasks, stopping soon!')
 
     def add_task(self, task, *args, **kw):
         """Insert a task into the queue.  task must be callable;
@@ -49,6 +59,8 @@ class ThreadPool(object):
         try:
             self.__tasks.append((task, args, kw))
             self.nb_tasks += 1
+            log.debug('Task added %s %s %s' % (
+                task, args, kw))
             return True
         finally:
             self.__taskLock.release()
@@ -83,6 +95,8 @@ class ThreadPool(object):
             sleep(1)
             self.print_status()
 
+        log.debug('Waiting the current tasks are finished '
+                  'then stop the threads')
         self.stop_threads()
         # Wait until all threads have exited
         for t in self.threads:
@@ -108,15 +122,16 @@ class ThreadPoolThread(threading.Thread):
     def __init__(self, pool):
         """ Initialize the thread and remember the pool."""
         super(ThreadPoolThread, self).__init__()
-        self.__pool = pool
+        self.pool = pool
         self.__active = True
         self.working = False
+        log.debug('Starting thread')
 
     def run(self):
         """Until told to quit, retrieve the next task and execute
         it, calling the callback if any."""
         while self.__active is True:
-            cmd, args, kw = self.__pool.get_next_task()
+            cmd, args, kw = self.pool.get_next_task()
             # If there's nothing to do, just sleep a bit
             if cmd is None:
                 self.working = False
@@ -124,15 +139,19 @@ class ThreadPoolThread(threading.Thread):
             else:
                 self.working = True
                 try:
+                    task_str = 'task %s %s %s' % (cmd, args, kw)
+                    log.debug('Starting %s' % task_str)
                     cmd(*args, **kw)
-                except:
-                    # TODO: add logging
-                    pass
+                    log.debug('Finished %s' % task_str)
+                except Exception, e:
+                    log.exception(e)
+                    raise
                 finally:
-                    self.__pool.nb_done += 1
+                    self.pool.nb_done += 1
 
         self.working = False
 
     def stop(self):
         """Exit the run loop next time through."""
+        log.debug('Stopping thread')
         self.__active = False
