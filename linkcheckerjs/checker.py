@@ -88,7 +88,8 @@ class Linkchecker(object):
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
-        self.ignored_urls_regex = set(re.compile(p) for p in ignore_url_patterns)
+        self.ignored_urls_regex = set(re.compile(p)
+                                      for p in ignore_url_patterns or [])
         self.valid_domains = domains
         self.maxdepth = (maxdepth is None) and -1 or maxdepth
 
@@ -138,7 +139,7 @@ class Linkchecker(object):
     def schedule(self, url, new_depth=0):
         if urlparse(url).hostname not in self.valid_domains:
             self.request_pool.add_task(self.quick_check, url=url, reason='OTHER_DOMAIN')
-        elif new_depth > self.maxdepth:
+        elif self.maxdepth > 0 and new_depth > self.maxdepth:
             self.request_pool.add_task(self.quick_check, url=url, reason='TOO_FAR_IN_OUR_DOMAINS')
         else:
             self.phantom_pool.add_task(self.check, url=url, depth=new_depth)
