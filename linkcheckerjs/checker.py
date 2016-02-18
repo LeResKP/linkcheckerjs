@@ -107,6 +107,8 @@ class Linkchecker(object):
                 'crawler': 'PHANTOM',
             })
             self.results[url] = result
+            if len(self.results) > self.max_nb_urls:
+                return
             self.feed_result(result, depth+1)
         except CheckerException as e:
             self.errored_urls[url] = e
