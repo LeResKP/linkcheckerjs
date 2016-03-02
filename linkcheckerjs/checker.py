@@ -81,10 +81,9 @@ def requests_checker(url, ignore_ssl_errors=False):
 
 class Linkchecker(object):
 
-    def __init__(self, phantom_pool, request_pool, ignore_ssl_errors=False,
+    def __init__(self, pool, ignore_ssl_errors=False,
                  ignore_url_patterns=None, domains=None, maxdepth=None):
-        self.phantom_pool = phantom_pool
-        self.request_pool = request_pool
+        self.pool = pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
 
@@ -140,20 +139,19 @@ class Linkchecker(object):
 
     def schedule(self, url, new_depth=0):
         if urlparse(url).hostname not in self.valid_domains:
-            self.request_pool.add_task(self.quick_check, url=url, reason='OTHER_DOMAIN')
+            self.pool.add_task(self.quick_check, url=url, reason='OTHER_DOMAIN')
         elif self.maxdepth > 0 and new_depth > self.maxdepth:
-            self.request_pool.add_task(self.quick_check, url=url, reason='TOO_FAR_IN_OUR_DOMAINS')
+            self.pool.add_task(self.quick_check, url=url, reason='TOO_FAR_IN_OUR_DOMAINS')
         else:
-            self.phantom_pool.add_task(self.check, url=url, depth=new_depth)
+            self.pool.add_task(self.check, url=url, depth=new_depth)
 
     def filter_ignore_urls_patterns(self, urls):
         # TODO: improve with domains
         return (u for u in urls
-            if not any(r.search(u) for r in self.ignored_urls_regex))
+                if not any(r.search(u) for r in self.ignored_urls_regex))
 
     def wait(self):
-        self.request_pool.join_all()
-        self.phantom_pool.join_all()
+        self.pool.join_all()
 
 
 def main():
@@ -179,7 +177,6 @@ def main():
         handler.setLevel(logging.DEBUG)
         thread.handler.setLevel(logging.DEBUG)
 
-
     if options.filename:
         with open(options.filename, 'r') as f:
             urls = [url for url in f.readlines()]
@@ -188,12 +185,10 @@ def main():
 
     # Create a pool
     log.debug('Starting pool with %i threads' % options.thread)
-    phantom_pool = thread.ThreadPool(options.thread)
-    request_pool = thread.ThreadPool(options.thread * 5)
+    pool = thread.ThreadPool(options.thread)
 
     linkchecker = Linkchecker(
-        phantom_pool,
-        request_pool,
+        pool,
         ignore_url_patterns=options.ignore_url_patterns,
         ignore_ssl_errors=options.ignore_ssl_errors,
         maxdepth=options.maxdepth,
