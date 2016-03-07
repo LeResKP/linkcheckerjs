@@ -5,7 +5,7 @@ from subprocess import Popen, PIPE
 
 
 path = os.path.abspath(__file__)
-dir_path = os.path.dirname(path)
+dir_path = os.path.dirname(os.path.dirname(path))
 
 PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
 LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker2.js')
@@ -31,10 +31,17 @@ def phantomjs_checker(url, parent_url=None,
     pages = []
     page_loaded = False
     # TODO: make sure we have some keys
+    urls = dic['urls']
+    dic = dic['resources']
     for i in range(1, len(dic.keys())+1):
         res = dic[str(i)]
         res['parent_url'] = parent_url
         res['checker'] = 'phantomjs'
+        # TODO: do we really need default ?
+        res['urls'] = []
+        if 'url' in res:
+            raise Exception('Strange??')
+        res['url'] = res['endReply']['url']
         # TODO: write tests to be sure phantomjs script always return something
         if not page_loaded and res['endReply']['status'] in [301, 302]:
             parent_url = res['endReply']['url']
@@ -46,6 +53,7 @@ def phantomjs_checker(url, parent_url=None,
         else:
             pages[-1]['resources'].append(res)
 
+    pages[-1]['urls'] = urls
     return pages
 
 

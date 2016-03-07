@@ -26,6 +26,11 @@ handler.setLevel(logging.INFO)
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
+from linkcheckerjs.checker import (
+    phantomjs_checker,
+    requests_checker,
+)
+
 
 PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
 LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
@@ -34,49 +39,13 @@ LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
 class CheckerException(Exception):
     pass
 
+
 class PhantomjsException(CheckerException):
     pass
 
+
 class RequestException(CheckerException):
     pass
-
-
-def phantomjs_checker(url, ignore_ssl_errors=False, url_only=False):
-    cmd = [PHANTOMJS]
-    if ignore_ssl_errors is True:
-        cmd += ['--ignore-ssl-errors=yes']
-    cmd += [LINKCHECKERJS]
-    if url_only:
-        cmd += ['--url-only']
-    cmd += [url]
-
-    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
-    (stdout, stderr) = process.communicate()
-    if process.returncode != 0:
-        raise PhantomjsException('Bad return code %i:\n%s\n %s' % (
-            process.returncode, stdout, stderr))
-
-    return json.loads(stdout)
-
-
-def requests_checker(url, ignore_ssl_errors=False):
-    try:
-        #TODO: better allow_redirects handling
-        r = requests.head(url, allow_redirects=False, verify=not ignore_ssl_errors, timeout=5)
-    except requests.Timeout:
-        raise RequestException('timeout')
-
-    return {
-        u'page': {
-            u'redirect_url': r.headers.get('location'),
-            u'response_url': r.url,
-            u'status': r.reason,
-            u'status_code': r.status_code,
-            u'url': url,
-        },
-        u'resources': [],
-        u'urls': [],
-    }
 
 
 class Linkchecker(object):
@@ -90,7 +59,7 @@ class Linkchecker(object):
         self.ignored_urls_regex = set(re.compile(p)
                                       for p in ignore_url_patterns or [])
         self.valid_domains = domains
-        self.maxdepth = (maxdepth is None) and -1 or maxdepth
+        self.maxdepth = maxdepth
 
         self.__checkLock = threading.Condition(threading.Lock())
         self.results = OrderedDict()
@@ -99,31 +68,36 @@ class Linkchecker(object):
         # Security to not crawl all the web
         self.max_nb_urls = 50000
 
-    def check(self, url, depth=0):
+    def check(self, url, parent_url=None, depth=0):
         try:
             result = phantomjs_checker(url, self.ignore_ssl_errors)
-            result.update({
-                'crawler': 'PHANTOM',
-            })
-            self.results[url] = result
+            for page in result:
+                if self.results.get(page['url'], None) is None:
+                    self.results[page['url']] = page
+
             if len(self.results) > self.max_nb_urls:
                 return
-            self.feed_result(result, depth+1)
-        except CheckerException as e:
-            self.errored_urls[url] = e
 
-    def quick_check(self, url, reason):
+            depth += 1
+            if self.maxdepth is not None and depth > self.maxdepth:
+                # We are too far
+                return
+            self.feed_result(url, result[-1], depth)
+        except CheckerException as e:
+            # TODO: what to do here ??
+            self.errored_urls[url] = e
+            raise
+
+    def quick_check(self, url, parent_url):
         try:
             result = requests_checker(url, self.ignore_ssl_errors)
-            result.update({
-                'crawler': 'REQUESTS',
-                'quick': reason,
-            })
-            self.results[url] = result
+            for page in result:
+                if self.results.get(page['url'], None) is None:
+                    self.results[page['url']] = page
         except CheckerException as e:
             self.errored_urls[url] = e
 
-    def feed_result(self, result, new_depth):
+    def feed_result(self, url, result, new_depth):
         urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
 
         # Feed discovered url to the checker
@@ -132,21 +106,20 @@ class Linkchecker(object):
             for next_url in urls_to_check:
                 if next_url in self.results:
                     continue
-                self.results[next_url] = None
-                self.schedule(next_url, new_depth)
+                self.schedule(next_url, url, new_depth)
         finally:
             self.__checkLock.release()
 
-    def schedule(self, url, new_depth=0):
+    def schedule(self, url, parent_url=None, new_depth=0):
+        self.results[url] = None
         if urlparse(url).hostname not in self.valid_domains:
-            self.pool.add_task(self.quick_check, url=url, reason='OTHER_DOMAIN')
-        elif self.maxdepth > 0 and new_depth > self.maxdepth:
-            self.pool.add_task(self.quick_check, url=url, reason='TOO_FAR_IN_OUR_DOMAINS')
+            self.pool.add_task(self.quick_check, parent_url=parent_url,
+                               url=url)
         else:
-            self.pool.add_task(self.check, url=url, depth=new_depth)
+            self.pool.add_task(self.check, url=url, parent_url=parent_url,
+                               depth=new_depth)
 
     def filter_ignore_urls_patterns(self, urls):
-        # TODO: improve with domains
         return (u for u in urls
                 if not any(r.search(u) for r in self.ignored_urls_regex))
 
@@ -198,7 +171,6 @@ def main():
     for url in urls:
         url = url.strip()
         linkchecker.schedule(url)
-
 
     linkchecker.wait()
 
