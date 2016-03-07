@@ -52,7 +52,20 @@
     page.open(url, function(status) {
         page.endTime = new Date();
         page.status = status;
-        console.log(JSON.stringify(page.resources));
+
+        var urls = [];
+        if (status === "success") {
+            urls = page.evaluate(function() {
+                var lis = document.querySelectorAll("a");
+                return Array.prototype.map.call(lis, function(a) {
+                    return a.href;
+                });
+            });
+        }
+        console.log(JSON.stringify({
+            resources: page.resources,
+            urls: urls
+        }));
         phantom.exit(0);
     });
 })();
