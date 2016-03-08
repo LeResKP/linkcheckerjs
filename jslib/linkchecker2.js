@@ -64,6 +64,9 @@
         }
         console.log(JSON.stringify({
             resources: page.resources,
+            status: status,
+            startTime: page.startTime,
+            endTime: page.endTime,
             urls: urls
         }));
         phantom.exit(0);
