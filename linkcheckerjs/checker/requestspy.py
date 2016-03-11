@@ -6,22 +6,25 @@ from optparse import OptionParser
 
 def requests_checker(url, parent_url=None, ignore_ssl_errors=False):
     try:
-        #TODO: better allow_redirects handling
-        r = requests.head(url, allow_redirects=True, verify=not ignore_ssl_errors, timeout=5)
+        r = requests.head(url, allow_redirects=True,
+                          verify=not ignore_ssl_errors, timeout=5)
     except requests.Timeout:
-        # TODO: better exception
+        # TODO: better exception and make sure it does the same as in
+        # linkchecker
         raise Exception('timeout')
 
     pages = []
     for p in r.history + [r]:
         pages += [{
-            u'redirect_url': p.headers.get('location'),
-            u'response_url': p.url,
-            u'status': p.reason,
-            u'status_code': p.status_code,
-            u'url': url,
+            'checker': 'requests',
+            'url': p.url,
+            'redirect_url': p.headers.get('location'),
+            'status_code': p.status_code,
+            'status': p.reason,
+            'parent_url': parent_url,
         }]
-        url = p.headers.get('location') or p.url
+
+        parent_url = p.headers.get('location') or p.url
 
     return pages
 
