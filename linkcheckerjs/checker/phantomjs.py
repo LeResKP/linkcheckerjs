@@ -11,6 +11,48 @@ PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
 LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker2.js')
 
 
+def parse_phantomjs_result(result, url, parent_url):
+    """Parse the phantomjs result to returns data per page.
+
+    We can have multiple pages when there is some redirect before having a real
+    page
+    """
+    urls = result['urls']
+    phantomjs_resources = result['resources']
+    keys = phantomjs_resources.keys()
+    page = None
+    pages = []
+
+    # Keys should be integer as string from 1
+    for i in range(1, len(keys)+1):
+        resource = phantomjs_resources[str(i)]
+        response = resource['endReply']
+        tmp_dict = {
+            'checker': 'phantomjs',
+            'url': response['url'],
+            'redirect_url': response['redirectURL'],
+            'status_code': response['status'],
+            'status': response['statusText'],
+            # TODO: keep the raw_data when it will be needed
+            # 'raw_data': resource,
+        }
+
+        if not page and response['status'] in [301, 302]:
+            tmp_dict['parent_url'] = parent_url
+            parent_url = response['url']
+            pages += [tmp_dict]
+        elif not page:
+            tmp_dict['parent_url'] = parent_url
+            tmp_dict['resources'] = []
+            page = tmp_dict
+            pages += [page]
+        else:
+            page['resources'].append(tmp_dict)
+
+    page['urls'] = urls
+    return pages
+
+
 def phantomjs_checker(url, parent_url=None,
                       ignore_ssl_errors=False):
     cmd = [PHANTOMJS]
@@ -27,34 +69,7 @@ def phantomjs_checker(url, parent_url=None,
             process.returncode, stdout, stderr))
 
     dic = json.loads(stdout)
-
-    pages = []
-    page_loaded = False
-    # TODO: make sure we have some keys
-    urls = dic['urls']
-    dic = dic['resources']
-    for i in range(1, len(dic.keys())+1):
-        res = dic[str(i)]
-        res['parent_url'] = parent_url
-        res['checker'] = 'phantomjs'
-        # TODO: do we really need default ?
-        res['urls'] = []
-        if 'url' in res:
-            raise Exception('Strange??')
-        res['url'] = res['endReply']['url']
-        # TODO: write tests to be sure phantomjs script always return something
-        if not page_loaded and res['endReply']['status'] in [301, 302]:
-            parent_url = res['endReply']['url']
-            pages += [res]
-        elif not page_loaded:
-            page_loaded = True
-            res['resources'] = []
-            pages += [res]
-        else:
-            pages[-1]['resources'].append(res)
-
-    pages[-1]['urls'] = urls
-    return pages
+    return parse_phantomjs_result(dic, url, parent_url)
 
 
 if __name__ == '__main__':
