@@ -33,16 +33,16 @@ def parse_phantomjs_result(result, url, parent_url):
             'redirect_url': response['redirectURL'],
             'status_code': response['status'],
             'status': response['statusText'],
+            'parent_url': parent_url,
             # TODO: keep the raw_data when it will be needed
             # 'raw_data': resource,
         }
 
         if not page and response['status'] in [301, 302]:
-            tmp_dict['parent_url'] = parent_url
             parent_url = response['url']
             pages += [tmp_dict]
         elif not page:
-            tmp_dict['parent_url'] = parent_url
+            parent_url = response['url']
             tmp_dict['resources'] = []
             page = tmp_dict
             pages += [page]
