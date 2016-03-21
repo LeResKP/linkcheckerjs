@@ -70,7 +70,9 @@ class Linkchecker(object):
 
     def check(self, url, parent_url=None, depth=0):
         try:
-            result = phantomjs_checker(url, self.ignore_ssl_errors)
+            result = phantomjs_checker(
+                url, parent_url=parent_url,
+                ignore_ssl_errors=self.ignore_ssl_errors)
             for page in result:
                 if self.results.get(page['url'], None) is None:
                     self.results[page['url']] = page
