@@ -67,6 +67,7 @@ setup(
     install_requires=[
         # -*- Extra requirements: -*-
         'requests',
+        'colorterm',
     ],
     test_suite='nose.collector',
     tests_require=[
