@@ -10,9 +10,6 @@ from unittest import TestCase
 from linkcheckerjs.checker import phantomjs_checker
 
 
-import pprint
-
-
 process = None
 
 
@@ -33,241 +30,278 @@ class TestJSLib(TestCase):
 
     def test_200_ok(self):
         res = phantomjs_checker('http://localhost:8080')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'http://localhost:8080/',
-                u'status': u'OK',
-                u'status_code': 200,
-                u'url': u'http://localhost:8080'},
-            u'resources': [
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/css/unexisting.css',
-                 u'status': u'Not Found',
-                 u'status_code': 404,
-                 u'url': u'http://localhost:8080'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/css/style.css',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080'}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': u'http://localhost:8080/',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': u'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/css/unexisting.css',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/',
+                 'status': u'Not Found',
+                 'status_code': 404},
             ],
-            u'urls': [u'http://localhost:8080/page1.html',
-                      u'http://localhost:8080/page2.html',
-                      u'http://localhost:8080/unexisting']
-        }
-        self.maxDiff = None
+            'urls': ['http://localhost:8080/page1.html',
+                     'http://localhost:8080/page2.html',
+                     'http://localhost:8080/unexisting']
+        }]
         self.assertEqual(res, expected)
 
-    def test_200_ok_url_only(self):
-        res = phantomjs_checker('http://localhost:8080', url_only=True)
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'http://localhost:8080/',
-                u'status': u'OK',
-                u'status_code': 200,
-                u'url': u'http://localhost:8080'},
-            u'resources': [],
-            u'urls': []
-        }
-        self.maxDiff = None
-        self.assertEqual(res, expected)
-
-    def test_500_ssl_error(self):
+    def test_ssl_error(self):
         res = phantomjs_checker('https://localhost:8081')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'https://localhost:8081',
-                u'status': u'Unable to open URL',
-                u'status_code': 500,
-                u'url': u'https://localhost:8081'},
-            u'resources': [],
-            u'urls': []}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': u'https://localhost:8081/',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': None,
+            'status_code': None,
+            'resources': [],
+            'urls': []}]
         self.assertEqual(res, expected)
 
     def test_200_ok_ignore_ssl(self):
         res = phantomjs_checker('https://localhost:8081',
                                 ignore_ssl_errors=True)
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'https://localhost:8081/',
-                u'status': u'OK',
-                u'status_code': 200,
-                u'url': u'https://localhost:8081'},
-            u'resources': [
-                {u'redirect_url': None,
-                 u'response_url': u'https://localhost:8081/static/css/unexisting.css',
-                 u'status': u'Not Found',
-                 u'status_code': 404,
-                 u'url': u'https://localhost:8081'},
-                {u'redirect_url': None,
-                 u'response_url': u'https://localhost:8081/static/css/style.css',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'https://localhost:8081'}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': u'https://localhost:8081/',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': u'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': 'phantomjs',
+                 'url': u'https://localhost:8081/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': u'https://localhost:8081/',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': u'https://localhost:8081/static/css/unexisting.css',
+                 'redirect_url': None,
+                 'parent_url': u'https://localhost:8081/',
+                 'status': u'Not Found',
+                 'status_code': 404},
             ],
-            u'urls': [u'https://localhost:8081/page1.html',
-                      u'https://localhost:8081/page2.html',
-                      u'https://localhost:8081/unexisting']
-        }
-        self.maxDiff = None
+            'urls': ['https://localhost:8081/page1.html',
+                     'https://localhost:8081/page2.html',
+                     'https://localhost:8081/unexisting']
+        }]
         self.assertEqual(res, expected)
 
     def test_301_redirect(self):
         res = phantomjs_checker('http://localhost:8080/redirect-301')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': u'http://localhost:8080',
-                u'response_url': u'http://localhost:8080/redirect-301',
-                u'status': u'Moved Permanently',
-                u'status_code': 301,
-                u'url': u'http://localhost:8080/redirect-301'},
-            u'resources': [],
-            u'urls': [u'http://localhost:8080']}
+        expected = [
+            {
+                'checker': 'phantomjs',
+                'url': u'http://localhost:8080/redirect-301',
+                'redirect_url': u'http://localhost:8080',
+                'parent_url': None,
+                'status': u'Moved Permanently',
+                'status_code': 301},
+            {
+                'checker': 'phantomjs',
+                'url': u'http://localhost:8080/',
+                'redirect_url': None,
+                'parent_url': u'http://localhost:8080/redirect-301',
+                'status': u'OK',
+                'status_code': 200,
+                'resources': [
+                    {'checker': 'phantomjs',
+                     'parent_url': u'http://localhost:8080/',
+                     'redirect_url': None,
+                     'status': u'OK',
+                     'status_code': 200,
+                     'url': u'http://localhost:8080/static/css/style.css'},
+                    {'checker': 'phantomjs',
+                     'parent_url': u'http://localhost:8080/',
+                     'redirect_url': None,
+                     'status': u'Not Found',
+                     'status_code': 404,
+                     'url': u'http://localhost:8080/static/css/unexisting.css'}
+                ],
+                'urls': ['http://localhost:8080/page1.html',
+                         'http://localhost:8080/page2.html',
+                         'http://localhost:8080/unexisting']}]
+
         self.assertEqual(res, expected)
 
     def test_302_redirect(self):
         res = phantomjs_checker('http://localhost:8080/redirect-302')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': u'http://localhost:8080',
-                u'response_url': u'http://localhost:8080/redirect-302',
-                u'status': u'Moved Temporarily',
-                u'status_code': 302,
-                u'url': u'http://localhost:8080/redirect-302'},
-            u'resources': [],
-            u'urls': [u'http://localhost:8080']}
+        expected = [
+            {
+                'checker': 'phantomjs',
+                'url': u'http://localhost:8080/redirect-302',
+                'redirect_url': u'http://localhost:8080',
+                'parent_url': None,
+                'status': u'Moved Temporarily',
+                'status_code': 302},
+            {
+                'checker': 'phantomjs',
+                'redirect_url': None,
+                'parent_url': u'http://localhost:8080/redirect-302',
+                'status': u'OK',
+                'status_code': 200,
+                'url': u'http://localhost:8080/',
+                'resources': [
+                    {'checker': 'phantomjs',
+                     'parent_url': u'http://localhost:8080/',
+                     'redirect_url': None,
+                     'status': u'OK',
+                     'status_code': 200,
+                     'url': u'http://localhost:8080/static/css/style.css'},
+                    {'checker': 'phantomjs',
+                     'parent_url': u'http://localhost:8080/',
+                     'redirect_url': None,
+                     'status': u'Not Found',
+                     'status_code': 404,
+                     'url': u'http://localhost:8080/static/css/unexisting.css'}
+                ],
+                'urls': [
+                    'http://localhost:8080/page1.html',
+                    'http://localhost:8080/page2.html',
+                    'http://localhost:8080/unexisting']}
+        ]
         self.assertEqual(res, expected)
 
     def test_page1(self):
         res = phantomjs_checker('http://localhost:8080/page1.html')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'http://localhost:8080/page1.html',
-                u'status': u'OK',
-                u'status_code': 200,
-                u'url': u'http://localhost:8080/page1.html'},
-            u'resources': [
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/unexisting.png',
-                 u'status': u'Not Found',
-                 u'status_code': 404,
-                 u'url': u'http://localhost:8080/page1.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/image1.png',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page1.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/css/style.css',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page1.html'}],
-            u'urls': []}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': u'http://localhost:8080/page1.html',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': u'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page1.html',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/images/unexisting.png',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page1.html',
+                 'status': u'Not Found',
+                 'status_code': 404},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/images/image1.png',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page1.html',
+                 'status': u'OK',
+                 'status_code': 200},
+            ],
+            u'urls': []}]
         self.assertEqual(res, expected)
 
     def test_page2(self):
         res = phantomjs_checker('http://localhost:8080/page2.html')
-        pprint.pprint(res)
-        expected = {
-            u'page': {
-                u'redirect_url': None,
-                u'response_url': u'http://localhost:8080/page2.html',
-                u'status': u'OK',
-                u'status_code': 200,
-                u'url': u'http://localhost:8080/page2.html'},
-            u'resources': [
-                {u'redirect_url': u'http://localhost:8080/static/css/style.css',
-                 u'response_url': u'http://localhost:8080/redirect-static-301/css/style.css',
-                 u'status': u'Moved Permanently',
-                 u'status_code': 301,
-                 u'url': u'http://localhost:8080/page2.html'},
-                {u'redirect_url': u'http://localhost:8080/static/images/unexisting.png',
-                 u'response_url': u'http://localhost:8080/redirect-static-301/images/unexisting.png',
-                 u'status': u'Moved Permanently',
-                 u'status_code': 301,
-                 u'url': u'http://localhost:8080/page2.html'},
-                {u'redirect_url': u'http://localhost:8080/static/images/image1.png',
-                 u'response_url': u'http://localhost:8080/redirect-static-302/images/image1.png',
-                 u'status': u'Moved Temporarily',
-                 u'status_code': 302,
-                 u'url': u'http://localhost:8080/page2.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/unexisting.png',
-                 u'status': u'Not Found',
-                 u'status_code': 404,
-                 u'url': u'http://localhost:8080/page2.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/css/style.css',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page2.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/image1.png',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page2.html'}],
-            u'urls': []}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': u'http://localhost:8080/page2.html',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': u'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/redirect-static-301/css/style.css',
+                 'redirect_url': u'http://localhost:8080/static/css/style.css',
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'Moved Permanently',
+                 'status_code': 301},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/redirect-static-301/images/unexisting.png',
+                 'redirect_url': u'http://localhost:8080/static/images/unexisting.png',
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'Moved Permanently',
+                 'status_code': 301},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/redirect-static-302/images/image1.png',
+                 'redirect_url': u'http://localhost:8080/static/images/image1.png',
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'Moved Temporarily',
+                 'status_code': 302},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/images/unexisting.png',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'Not Found',
+                 'status_code': 404},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/images/image1.png',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page2.html',
+                 'status': u'OK',
+                 'status_code': 200}],
+            u'urls': []}]
 
-        self.assertEqual(res.keys(), expected.keys())
-        self.assertEqual(res['page'], expected['page'])
-        self.assertEqual(res['urls'], expected['urls'])
-        self.assertEqual(sorted(res['resources']),
-                         sorted(expected['resources']))
+        res[0]['resources'].sort()
+        expected[0]['resources'].sort()
+        self.assertEqual(res, expected)
 
     def test_page3(self):
         res = phantomjs_checker('http://localhost:8080/page3.html')
-        pprint.pprint(res)
-        expected = {
-            u'page': {u'redirect_url': None,
-                      u'response_url': u'http://localhost:8080/page3.html',
-                      u'status': u'OK',
-                      u'status_code': 200,
-                      u'url': u'http://localhost:8080/page3.html'},
-            u'resources': [
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/css/style.css',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page3.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/unexisting.png',
-                 u'status': u'Not Found',
-                 u'status_code': 404,
-                 u'url': u'http://localhost:8080/page3.html'},
-                {u'redirect_url': None,
-                 u'response_url': u'http://localhost:8080/static/images/image1.png',
-                 u'status': u'OK',
-                 u'status_code': 200,
-                 u'url': u'http://localhost:8080/page3.html'}],
-            u'urls': []}
+        expected = [{
+            'checker': 'phantomjs',
+            'url': 'http://localhost:8080/page3.html',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': 'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': 'http://localhost:8080/page3.html',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': u'http://localhost:8080/static/images/image1.png',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/page3.html',
+                 'status': 'OK',
+                 'status_code': 200},
+                {'checker': 'phantomjs',
+                 'url': 'http://localhost:8080/static/images/unexisting.png',
+                 'redirect_url': None,
+                 'parent_url': 'http://localhost:8080/page3.html',
+                 'status': 'Not Found',
+                 'status_code': 404}],
+            u'urls': []
+        }]
 
         self.assertEqual(res, expected)
 
     def test_unexisting(self):
         res = phantomjs_checker('http://localhost:8080/unexisting.html')
-        pprint.pprint(res)
-        expected = {
-            "page": {
-                "url": "http://localhost:8080/unexisting.html",
-                "response_url": "http://localhost:8080/unexisting.html",
-                "redirect_url": None,
-                "status_code": 404,
-                "status": "Not Found"
-            },
+        expected = [{
+            'checker': 'phantomjs',
+            "url": "http://localhost:8080/unexisting.html",
+            "redirect_url": None,
+            "parent_url": None,
+            "status_code": 404,
+            "status": "Not Found",
             "resources": [],
-            "urls": []
-        }
-
+            "urls": [],
+        }]
         self.assertEqual(res, expected)
