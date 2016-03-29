@@ -2,6 +2,18 @@
 
 import requests
 from optparse import OptionParser
+from urlparse import urlparse
+
+
+def phantomjs_url(url):
+    """Standardisation of the given url to match phantomjs returned url
+    """
+    if not url:
+        return url
+    o = urlparse(url)
+    if not o.path:
+        return url + '/'
+    return url
 
 
 def requests_checker(url, parent_url=None, ignore_ssl_errors=False):
@@ -12,19 +24,29 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False):
         # TODO: better exception and make sure it does the same as in
         # linkchecker
         raise Exception('timeout')
+    except requests.exceptions.SSLError, e:
+        # Same output as phantomsjs checker
+        return [{
+            'checker': 'requests',
+            'url': phantomjs_url(e.request.url),
+            'redirect_url': None,
+            'status_code': None,
+            'status': None,
+            'parent_url': parent_url,
+        }]
 
     pages = []
     for p in r.history + [r]:
         pages += [{
             'checker': 'requests',
-            'url': p.url,
+            'url': phantomjs_url(p.url),
             'redirect_url': p.headers.get('location'),
             'status_code': p.status_code,
             'status': p.reason,
             'parent_url': parent_url,
         }]
 
-        parent_url = p.headers.get('location') or p.url
+        parent_url = phantomjs_url(p.url)
 
     return pages
 
