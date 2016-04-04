@@ -3,6 +3,8 @@ import json
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
+from ..exc import PhantomjsException
+
 
 path = os.path.abspath(__file__)
 dir_path = os.path.dirname(os.path.dirname(path))
@@ -66,8 +68,7 @@ def phantomjs_checker(url, parent_url=None, ignore_ssl_errors=False,
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     (stdout, stderr) = process.communicate()
     if process.returncode != 0:
-        # TODO: better exception
-        raise Exception('Bad return code %i:\n%s\n %s' % (
+        raise PhantomjsException('Bad return code %i:\n%s\n %s' % (
             process.returncode, stdout, stderr))
 
     dic = json.loads(stdout)

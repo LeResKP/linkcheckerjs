@@ -4,6 +4,8 @@ import requests
 from optparse import OptionParser
 from urlparse import urlparse
 
+from ..exc import RequestsException
+
 
 def phantomjs_url(url):
     """Standardisation of the given url to match phantomjs returned url
@@ -40,6 +42,8 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
             'status': None,
             'parent_url': parent_url,
         }]
+    except Exception, e:
+        raise RequestsException(e)
 
     pages = []
     for p in r.history + [r]:

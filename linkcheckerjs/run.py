@@ -4,15 +4,18 @@ import os
 import re
 import json
 import logging
-import requests
 import threading
 
 from urlparse import urlparse
 from optparse import OptionParser
-from subprocess import Popen, PIPE
 from collections import OrderedDict
 
 from . import thread
+from .exc import CheckerException
+from .checker import (
+    phantomjs_checker,
+    requests_checker,
+)
 
 path = os.path.abspath(__file__)
 dir_path = os.path.dirname(path)
@@ -25,27 +28,6 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 handler.setFormatter(formatter)
 log.addHandler(handler)
-
-from linkcheckerjs.checker import (
-    phantomjs_checker,
-    requests_checker,
-)
-
-
-PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
-LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
-
-
-class CheckerException(Exception):
-    pass
-
-
-class PhantomjsException(CheckerException):
-    pass
-
-
-class RequestException(CheckerException):
-    pass
 
 
 class Linkchecker(object):
@@ -65,7 +47,6 @@ class Linkchecker(object):
 
         self.__checkLock = threading.Condition(threading.Lock())
         self.results = OrderedDict()
-        self.errored_urls = {}
 
         # Security to not crawl all the web
         self.max_nb_urls = 50000
@@ -76,7 +57,7 @@ class Linkchecker(object):
                 url, parent_url=parent_url,
                 ignore_ssl_errors=self.ignore_ssl_errors)
             for page in result:
-                if self.results.get(page['url'], None) is None:
+                if self.results.get(page['url']) is None:
                     self.results[page['url']] = page
 
             if len(self.results) > self.max_nb_urls:
@@ -88,18 +69,32 @@ class Linkchecker(object):
                 return
             self.feed_result(url, result[-1], depth)
         except CheckerException as e:
-            # TODO: what to do here ??
-            self.errored_urls[url] = e
-            raise
+            if self.results.get(url) is None:
+                self.results[url] = {
+                    'checker': 'phantomjs_checker',
+                    'url': url,
+                    'redirect_url': None,
+                    'status_code': 500,
+                    'status': 'Internal Error - %s' % unicode(e),
+                    'parent_url': parent_url,
+                }
 
     def quick_check(self, url, parent_url):
         try:
             result = requests_checker(url, self.ignore_ssl_errors)
             for page in result:
-                if self.results.get(page['url'], None) is None:
+                if self.results.get(page['url']) is None:
                     self.results[page['url']] = page
         except CheckerException as e:
-            self.errored_urls[url] = e
+            if self.results.get(url) is None:
+                self.results[url] = {
+                    'checker': 'requests',
+                    'url': url,
+                    'redirect_url': None,
+                    'status_code': 500,
+                    'status': 'Internal Error - %s' % unicode(e),
+                    'parent_url': parent_url,
+                }
 
     def feed_result(self, url, result, new_depth):
         urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
