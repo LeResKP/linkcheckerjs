@@ -53,13 +53,15 @@ def parse_phantomjs_result(result, url, parent_url):
     return pages
 
 
-def phantomjs_checker(url, parent_url=None,
-                      ignore_ssl_errors=False):
+def phantomjs_checker(url, parent_url=None, ignore_ssl_errors=False,
+                      timeout=None):
     cmd = [PHANTOMJS]
     if ignore_ssl_errors is True:
         cmd += ['--ignore-ssl-errors=yes']
     cmd += [LINKCHECKERJS]
     cmd += [url]
+    if timeout:
+        cmd += [str(timeout)]
 
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     (stdout, stderr) = process.communicate()

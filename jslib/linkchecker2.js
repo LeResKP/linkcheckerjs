@@ -11,7 +11,15 @@
         phantom.exit(1);
     }
 
-    var url = args[len - 1];
+    var url = args[1];
+
+    if (len > 2) {
+        page.settings.resourceTimeout = parseInt(args[2], 10) * 1000;
+    }
+    else {
+        // Default 5s
+        page.settings.resourceTimeout = 5000;
+    }
 
 
     page.resources = {};
@@ -45,8 +53,11 @@
         // Ignore javascript errors for now.
     };
 
-    // timeout = 5s
-    page.settings.resourceTimeout = 5000;
+
+    var timeoutIds = [];
+    page.onResourceTimeout = function(request) {
+        timeoutIds.push(request.id);
+    };
 
 
     page.open(url, function(status) {
@@ -62,6 +73,14 @@
                 });
             });
         }
+
+        // Set the timeouted resources as timeouted
+        for (var i=0; i<timeoutIds.length; i++) {
+            var res = page.resources[timeoutIds[i]];
+            res.endReply.statusText = 'Request Time-out';
+            res.endReply.status = 408;
+        }
+
         console.log(JSON.stringify({
             resources: page.resources,
             status: status,

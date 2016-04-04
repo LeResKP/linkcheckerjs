@@ -16,14 +16,20 @@ def phantomjs_url(url):
     return url
 
 
-def requests_checker(url, parent_url=None, ignore_ssl_errors=False):
+def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
+                     timeout=None):
     try:
         r = requests.head(url, allow_redirects=True,
-                          verify=not ignore_ssl_errors, timeout=5)
-    except requests.Timeout:
-        # TODO: better exception and make sure it does the same as in
-        # linkchecker
-        raise Exception('timeout')
+                          verify=not ignore_ssl_errors, timeout=timeout)
+    except requests.Timeout, e:
+        return [{
+            'checker': 'requests',
+            'url': phantomjs_url(e.request.url),
+            'redirect_url': None,
+            'status_code': 408,
+            'status': 'Request Time-out',
+            'parent_url': parent_url,
+        }]
     except requests.exceptions.SSLError, e:
         # Same output as phantomsjs checker
         return [{

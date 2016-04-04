@@ -6,9 +6,26 @@ var fs = require('fs');
 
 var PORT = 8080;
 
+function waitSeconds(iMilliSeconds) {
+    var counter= 0,
+    start = new Date().getTime(),
+    end = 0;
+    while (counter < iMilliSeconds) {
+        end = new Date().getTime();
+        counter = end - start;
+    }
+}
+
+
 function handleRequest(request, response){
     console.log(request.url);
     var url;
+    if (request.url === '/timeout') {
+        waitSeconds(1500);
+        response.writeHead(301, {'Location': 'http://localhost:' + PORT});
+        response.end();
+        return;
+    }
     if (request.url === '/redirect-301') {
         response.writeHead(301, {'Location': 'http://localhost:' + PORT});
         response.end();

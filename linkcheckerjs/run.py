@@ -51,7 +51,8 @@ class RequestException(CheckerException):
 class Linkchecker(object):
 
     def __init__(self, pool, ignore_ssl_errors=False,
-                 ignore_url_patterns=None, domains=None, maxdepth=None):
+                 ignore_url_patterns=None, domains=None, maxdepth=None,
+                 timeout=None):
         self.pool = pool
         # Option passed to phantomjs
         self.ignore_ssl_errors = ignore_ssl_errors
@@ -60,6 +61,7 @@ class Linkchecker(object):
                                       for p in ignore_url_patterns or [])
         self.valid_domains = domains
         self.maxdepth = maxdepth
+        self.timeout = timeout
 
         self.__checkLock = threading.Condition(threading.Lock())
         self.results = OrderedDict()
@@ -138,6 +140,7 @@ def main():
                       help="Ignore ssl errors for self signed certificate")
     parser.add_option("-d", "--max-depth", dest="maxdepth", type="int")
     parser.add_option("-t", "--thread", dest="thread", type="int", default=8)
+    parser.add_option("--timeout", dest="timeout", type="int", default=5)
     parser.add_option("--ignore-url-pattern", action="append",
                       dest="ignore_url_patterns",
                       help="Pattern to ignore when crawling pages")
@@ -168,6 +171,7 @@ def main():
         ignore_ssl_errors=options.ignore_ssl_errors,
         maxdepth=options.maxdepth,
         domains=set(urlparse(url).hostname for url in urls),
+        timeout=options.timeout,
     )
 
     for url in urls:

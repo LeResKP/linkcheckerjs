@@ -303,12 +303,56 @@ class BaseTest(object):
         }]
         self.check(url, expected)
 
+    def test_timeout(self):
+        url = 'http://localhost:8080/timeout'
+        expected = [{
+            'checker': self.checker_name,
+            "url": "http://localhost:8080/timeout",
+            "redirect_url": None,
+            "parent_url": None,
+            "status_code": 408,
+            "status": "Request Time-out",
+            "resources": [],
+            "urls": [],
+        }]
+        self.check(url, expected, timeout=1)
+        time.sleep(1.5)
+
+    def test_timeout_resource(self):
+        url = 'http://localhost:8080/timeout.html'
+        expected = [{
+            'checker': self.checker_name,
+            'url': u'http://localhost:8080/timeout.html',
+            'redirect_url': None,
+            'parent_url': None,
+            'status': u'OK',
+            'status_code': 200,
+            'resources': [
+                {'checker': self.checker_name,
+                 'url': u'http://localhost:8080/static/css/style.css',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/timeout.html',
+                 'status': u'OK',
+                 'status_code': 200},
+                {'checker': self.checker_name,
+                 'url': u'http://localhost:8080/timeout',
+                 'redirect_url': None,
+                 'parent_url': u'http://localhost:8080/timeout.html',
+                 'status': u'Request Time-out',
+                 'status_code': 408},
+            ],
+            u'urls': []}]
+        self.maxDiff = None
+        self.check(url, expected, timeout=1)
+        time.sleep(1.5)
+
 
 class TestPhantomjsChecker(TestCase, BaseTest):
     checker_name = 'phantomjs'
 
-    def check(self, url, expected, ignore_ssl_errors=False):
-        res = phantomjs_checker(url, ignore_ssl_errors=ignore_ssl_errors)
+    def check(self, url, expected, ignore_ssl_errors=False, timeout=None):
+        res = phantomjs_checker(url, ignore_ssl_errors=ignore_ssl_errors,
+                                timeout=timeout)
         for d in expected:
             if 'resources' in d:
                 d['resources'].sort()
@@ -321,10 +365,11 @@ class TestPhantomjsChecker(TestCase, BaseTest):
 class TestRequestsChecker(TestCase, BaseTest):
     checker_name = 'requests'
 
-    def check(self, url, expected, ignore_ssl_errors=False):
+    def check(self, url, expected, ignore_ssl_errors=False, timeout=None):
         expected = copy.deepcopy(expected)
         for d in expected:
             d.pop('resources', None)
             d.pop('urls', None)
-        res = requests_checker(url, ignore_ssl_errors=ignore_ssl_errors)
+        res = requests_checker(url, ignore_ssl_errors=ignore_ssl_errors,
+                               timeout=timeout)
         self.assertEqual(res, expected)
