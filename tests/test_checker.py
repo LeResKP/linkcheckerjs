@@ -329,12 +329,6 @@ class BaseTest(object):
             'status_code': 200,
             'resources': [
                 {'checker': self.checker_name,
-                 'url': u'http://localhost:8080/static/css/style.css',
-                 'redirect_url': None,
-                 'parent_url': u'http://localhost:8080/timeout.html',
-                 'status': u'OK',
-                 'status_code': 200},
-                {'checker': self.checker_name,
                  'url': u'http://localhost:8080/timeout',
                  'redirect_url': None,
                  'parent_url': u'http://localhost:8080/timeout.html',
