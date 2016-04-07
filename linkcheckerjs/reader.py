@@ -92,8 +92,7 @@ class Resource(Element):
     def __init__(self, result):
         super(Resource, self).__init__(result)
         if self.parent_url and urlparse(self.parent_url).scheme == 'https':
-            # TODO: can we have url starting with '//'
-            if urlparse(self.url).scheme != 'https':
+            if urlparse(self.url).scheme == 'http':
                 self.display_level = ERROR
 
 
@@ -127,7 +126,7 @@ class Page(Element):
                                                   indent_level=indent_level+1))
         if urls:
             s.append(
-                print_title('links', '', indent_level=indent_level,
+                print_title('Links', '', indent_level=indent_level,
                             display_level=None))
             s.append('\n\n'.join(urls))
 
