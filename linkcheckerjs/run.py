@@ -130,6 +130,8 @@ def main():
     parser = OptionParser()
     parser.add_option("-f", "--file", dest="filename",
                       help="Urls list", metavar="FILE")
+    parser.add_option("-o", "--output", dest="output",
+                      help="Json output file", metavar="FILE")
     parser.add_option("-i", "--ignore-ssl-errors", action="store_true",
                       dest="ignore_ssl_errors",
                       help="Ignore ssl errors for self signed certificate")
@@ -145,6 +147,9 @@ def main():
 
     if options.filename is None and not args:
         raise Exception('Filename required')
+
+    if options.output is None:
+        raise Exception('Please provide an output json file')
 
     if options.verbose:
         handler.setLevel(logging.DEBUG)
@@ -175,7 +180,7 @@ def main():
 
     linkchecker.wait()
 
-    with open('data.json', 'w') as f:
+    with open(options.output, 'w') as f:
         json.dump(linkchecker.results, f)
 
 
