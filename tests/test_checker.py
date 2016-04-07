@@ -7,7 +7,10 @@ import copy
 
 from unittest import TestCase
 
-from linkcheckerjs.checker import phantomjs_checker, requests_checker
+from linkcheckerjs.checker import (
+    phantomjs_checker,
+    requests_checker,
+    standardize_url)
 
 
 process = None
@@ -367,3 +370,21 @@ class TestRequestsChecker(TestCase, BaseTest):
         res = requests_checker(url, ignore_ssl_errors=ignore_ssl_errors,
                                timeout=timeout)
         self.assertEqual(res, expected)
+
+
+class TestUtils(TestCase):
+
+    def test_standardize_url(self):
+        url = 'http://www.lereskp.fr'
+        res = standardize_url(url)
+        expected = 'http://www.lereskp.fr/'
+        self.assertEqual(res, expected)
+
+        url = 'http://www.lereskp.fr/'
+        res = standardize_url(url)
+        expected = 'http://www.lereskp.fr/'
+        self.assertEqual(res, expected)
+
+        url = 'http://www.lereskp.fr/page'
+        res = standardize_url(url)
+        self.assertEqual(res, url)

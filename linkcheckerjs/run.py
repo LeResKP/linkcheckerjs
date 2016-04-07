@@ -15,6 +15,7 @@ from .exc import CheckerException
 from .checker import (
     phantomjs_checker,
     requests_checker,
+    standardize_url,
 )
 
 path = os.path.abspath(__file__)
@@ -97,7 +98,7 @@ class Linkchecker(object):
                 }
 
     def schedule(self, url, parent_url=None, new_depth=0):
-        self.results[url] = None
+        self.results[standardize_url(url)] = None
         if urlparse(url).hostname not in self.valid_domains:
             self.pool.add_task(self.quick_check, parent_url=parent_url,
                                url=url)

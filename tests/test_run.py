@@ -46,7 +46,7 @@ class TestLinkcheckerjs(TestCase):
         self.assertEqual(len(linkchecker.results), 1)
 
     def test_schedule(self):
-        url = 'http://localhost:8080'
+        url = 'http://localhost:8080/'
         linkchecker = run.Linkchecker(self.pool)
         linkchecker.schedule(url)
         self.assertEqual(linkchecker.results[url], None)
