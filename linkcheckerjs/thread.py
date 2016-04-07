@@ -26,7 +26,7 @@ class ThreadPool(object):
         """Initialize the thread pool with number_threads workers."""
         self.threads = []
         self.__taskLock = threading.Condition(threading.Lock())
-        self.__tasks = []
+        self._tasks = []
         self.__active = True
         self.nb_tasks = 0
         self.nb_done = 0
@@ -57,7 +57,7 @@ class ThreadPool(object):
 
         self.__taskLock.acquire()
         try:
-            self.__tasks.append((task, args, kw))
+            self._tasks.append((task, args, kw))
             self.nb_tasks += 1
             log.debug('Task added %s %s %s' % (
                 task, args, kw))
@@ -70,10 +70,10 @@ class ThreadPool(object):
         only by ThreadPoolThread objects contained in the pool."""
         self.__taskLock.acquire()
         try:
-            if not self.__tasks:
+            if not self._tasks:
                 return (None, None, None)
             else:
-                return self.__tasks.pop(0)
+                return self._tasks.pop(0)
         finally:
             self.__taskLock.release()
 
@@ -108,7 +108,7 @@ class ThreadPool(object):
             # Keyboard interrupt
             return True
 
-        if self.__tasks:
+        if self._tasks:
             return False
 
         return all([not t.working for t in self.threads])

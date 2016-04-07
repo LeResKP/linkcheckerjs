@@ -41,7 +41,7 @@ class Linkchecker(object):
 
         self.ignored_urls_regex = set(re.compile(p)
                                       for p in ignore_url_patterns or [])
-        self.valid_domains = domains
+        self.valid_domains = domains or []
         self.maxdepth = maxdepth
         self.timeout = timeout
 
@@ -79,7 +79,7 @@ class Linkchecker(object):
                     'parent_url': parent_url,
                 }
 
-    def quick_check(self, url, parent_url):
+    def quick_check(self, url, parent_url=None):
         try:
             result = requests_checker(url, self.ignore_ssl_errors)
             for page in result:
@@ -96,19 +96,6 @@ class Linkchecker(object):
                     'parent_url': parent_url,
                 }
 
-    def feed_result(self, url, result, new_depth):
-        urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
-
-        # Feed discovered url to the checker
-        self.__checkLock.acquire()
-        try:
-            for next_url in urls_to_check:
-                if next_url in self.results:
-                    continue
-                self.schedule(next_url, url, new_depth)
-        finally:
-            self.__checkLock.release()
-
     def schedule(self, url, parent_url=None, new_depth=0):
         self.results[url] = None
         if urlparse(url).hostname not in self.valid_domains:
@@ -121,6 +108,19 @@ class Linkchecker(object):
     def filter_ignore_urls_patterns(self, urls):
         return (u for u in urls
                 if not any(r.search(u) for r in self.ignored_urls_regex))
+
+    def feed_result(self, url, result, new_depth):
+        urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
+
+        # Feed discovered url to the checker
+        self.__checkLock.acquire()
+        try:
+            for next_url in urls_to_check:
+                if next_url in self.results:
+                    continue
+                self.schedule(next_url, url, new_depth)
+        finally:
+            self.__checkLock.release()
 
     def wait(self):
         self.pool.join_all()
