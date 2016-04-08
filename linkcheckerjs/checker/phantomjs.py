@@ -10,7 +10,7 @@ path = os.path.abspath(__file__)
 dir_path = os.path.dirname(os.path.dirname(path))
 
 PHANTOMJS = os.path.join(dir_path, 'node_modules/phantomjs/bin/phantomjs')
-LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker2.js')
+LINKCHECKERJS = os.path.join(dir_path, 'jslib/linkchecker.js')
 
 
 def parse_phantomjs_result(result, url, parent_url):
