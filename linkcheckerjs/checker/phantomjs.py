@@ -3,7 +3,7 @@ import json
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
-from ..exc import PhantomjsException
+from .utils import standardize_url
 
 
 path = os.path.abspath(__file__)
@@ -29,16 +29,27 @@ def parse_phantomjs_result(result, url, parent_url):
     for i in range(1, len(keys)+1):
         resource = phantomjs_resources[str(i)]
         response = resource['endReply']
-        tmp_dict = {
-            'checker': 'phantomjs',
-            'url': response['url'],
-            'redirect_url': response['redirectURL'],
-            'status_code': response['status'],
-            'status': response['statusText'],
-            'parent_url': parent_url,
-            # TODO: keep the raw_data when it will be needed
-            # 'raw_data': resource,
-        }
+        if not response:
+            # Weird: An error occured during the request
+            tmp_dict = {
+                'checker': 'phantomjs',
+                'url': standardize_url(url),
+                'redirect_url': None,
+                'status_code': 500,
+                'status': 'No response',
+                'parent_url': parent_url,
+            }
+        else:
+            tmp_dict = {
+                'checker': 'phantomjs',
+                'url': response['url'],
+                'redirect_url': response['redirectURL'],
+                'status_code': response['status'],
+                'status': response['statusText'],
+                'parent_url': parent_url,
+                # TODO: keep the raw_data when it will be needed
+                # 'raw_data': resource,
+            }
 
         if not page and response['status'] in [301, 302]:
             parent_url = response['url']
@@ -70,12 +81,10 @@ def phantomjs_checker(url, parent_url=None, ignore_ssl_errors=False,
     if process.returncode != 0:
         return [{
             'checker': 'phantomjs',
-            'url': url,
+            'url': standardize_url(url),
             'redirect_url': None,
             'status_code': '500',
-            'status': 'Phantomjs Error: %s %s %s' % (process.returncode,
-                                                     stdout,
-                                                     stderr),
+            'status': 'Phantomjs Error: %s %s' % (process.returncode, stderr),
             'parent_url': parent_url,
             'resources': [],
             'urls': [],
