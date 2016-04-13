@@ -68,8 +68,18 @@ def phantomjs_checker(url, parent_url=None, ignore_ssl_errors=False,
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     (stdout, stderr) = process.communicate()
     if process.returncode != 0:
-        raise PhantomjsException('Bad return code %i:\n%s\n %s' % (
-            process.returncode, stdout, stderr))
+        return [{
+            'checker': 'phantomjs',
+            'url': url,
+            'redirect_url': None,
+            'status_code': '500',
+            'status': 'Phantomjs Error: %s %s %s' % (process.returncode,
+                                                     stdout,
+                                                     stderr),
+            'parent_url': parent_url,
+            'resources': [],
+            'urls': [],
+        }]
 
     dic = json.loads(stdout)
     return parse_phantomjs_result(dic, url, parent_url)
