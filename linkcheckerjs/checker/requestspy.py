@@ -21,6 +21,8 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
             'status_code': 408,
             'status': 'Request Time-out',
             'parent_url': parent_url,
+            'resources': [],
+            'urls': []
         }]
     except requests.exceptions.SSLError, e:
         # Same output as phantomsjs checker
@@ -31,6 +33,8 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
             'status_code': None,
             'status': None,
             'parent_url': parent_url,
+            'resources': [],
+            'urls': []
         }]
     except Exception, e:
         raise RequestsException(e)
@@ -44,6 +48,8 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
             'status_code': p.status_code,
             'status': p.reason,
             'parent_url': parent_url,
+            'resources': [],
+            'urls': []
         }]
 
         parent_url = standardize_url(p.url)
