@@ -120,6 +120,10 @@ class Page(Element):
 
         urls = []
         for url in self.urls:
+            if self.pages.get(url) is None:
+                # Be robust: it seems the process has been canceled
+                continue
+
             if self.pages[url].check_display_level(level):
                 urls.append(
                     self.pages[url].short_display(level,
@@ -158,14 +162,18 @@ def main():
 
     pages = OrderedDict()
     for url, value in data.iteritems():
+        if value is None:
+            # Be robust: it seems the process has been canceled
+            continue
         page = Page(value, pages)
         pages[url] = page
 
     for page in pages.itervalues():
-        print page.display(level=level)
-        print
-        print '---'
-        print
+        res = page.display(level=level)
+        if res:
+            print res
+            print '---'
+            print
 
 
 if __name__ == '__main__':
