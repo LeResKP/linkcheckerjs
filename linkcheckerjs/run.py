@@ -67,10 +67,10 @@ class Linkchecker(object):
                     'status': 'Internal Error - %s' % unicode(e),
                     'parent_url': parent_url,
                 }
-
-        for page in result:
-            if self.results.get(page['url']) is None:
-                self.results[page['url']] = page
+        else:
+            for page in result:
+                if self.results.get(page['url']) is None:
+                    self.results[page['url']] = page
 
         if len(self.results) > self.max_nb_urls:
             return

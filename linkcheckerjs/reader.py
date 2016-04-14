@@ -99,6 +99,9 @@ class Resource(Element):
 class Page(Element):
 
     def __init__(self, result, pages):
+        # Set default in case page has been checked by requests
+        self.resources = []
+        self.urls = []
         super(Page, self).__init__(result)
         self.pages = pages
         self.resource_objs = []

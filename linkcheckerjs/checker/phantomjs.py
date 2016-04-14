@@ -45,7 +45,7 @@ def parse_phantomjs_result(result, url, parent_url):
                 'checker': 'phantomjs',
                 'url': response['url'],
                 'redirect_url': response['redirectURL'],
-                'status_code': response['status'],
+                'status_code': response['status'] or 500,
                 'status': response['statusText'],
                 'parent_url': parent_url,
                 # TODO: keep the raw_data when it will be needed

@@ -62,14 +62,21 @@ class BaseTest(object):
         self.check(url, expected)
 
     def test_ssl_error(self):
+        if self.checker_name == 'requests':
+            msg = (
+                '[Errno 1] _ssl.c:504: error:14090086:SSL '
+                'routines:SSL3_GET_SERVER_CERTIFICATE:certificate '
+                'verify failed')
+        else:
+            msg = None
         url = 'https://localhost:8081'
         expected = [{
             'checker': self.checker_name,
             'url': u'https://localhost:8081/',
             'redirect_url': None,
             'parent_url': None,
-            'status': None,
-            'status_code': None,
+            'status': msg,
+            'status_code': 500,
             'resources': [],
             'urls': []}]
         self.check(url, expected)
@@ -339,7 +346,6 @@ class BaseTest(object):
                  'status_code': 408},
             ],
             u'urls': []}]
-        self.maxDiff = None
         self.check(url, expected, timeout=1)
         time.sleep(1.5)
 
