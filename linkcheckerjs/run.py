@@ -57,32 +57,29 @@ class Linkchecker(object):
             result = phantomjs_checker(
                 url, parent_url=parent_url,
                 ignore_ssl_errors=self.ignore_ssl_errors)
-            for page in result:
-                if self.results.get(page['url']) is None:
-                    self.results[page['url']] = page
-
-            if len(self.results) > self.max_nb_urls:
-                return
-
-            depth += 1
-            if self.maxdepth is not None and depth > self.maxdepth:
-                # We are too far
-                return
-            self.feed_result(url, result[-1], depth)
         except CheckerException as e:
             if self.results.get(url) is None:
                 self.results[url] = {
                     'checker': 'phantomjs_checker',
-                    'url': url,
+                    'url': standardize_url(url),
                     'redirect_url': None,
                     'status_code': 500,
                     'status': 'Internal Error - %s' % unicode(e),
                     'parent_url': parent_url,
                 }
 
+        for page in result:
+            if self.results.get(page['url']) is None:
+                self.results[page['url']] = page
+
+        if len(self.results) > self.max_nb_urls:
+            return
+        self.feed_result(url, result[-1], depth+1)
+
     def quick_check(self, url, parent_url=None):
         try:
-            result = requests_checker(url, self.ignore_ssl_errors)
+            result = requests_checker(url, parent_url=parent_url,
+                                      ignore_ssl_errors=self.ignore_ssl_errors)
             for page in result:
                 if self.results.get(page['url']) is None:
                     self.results[page['url']] = page
@@ -90,7 +87,7 @@ class Linkchecker(object):
             if self.results.get(url) is None:
                 self.results[url] = {
                     'checker': 'requests',
-                    'url': url,
+                    'url': standardize_url(url),
                     'redirect_url': None,
                     'status_code': 500,
                     'status': 'Internal Error - %s' % unicode(e),
@@ -98,8 +95,17 @@ class Linkchecker(object):
                 }
 
     def schedule(self, url, parent_url=None, new_depth=0):
+        too_far = False
+        if self.maxdepth is not None:
+            if new_depth > (self.maxdepth + 1):
+                # We are too far
+                return
+            if new_depth > self.maxdepth:
+                # Check the link with requestspy
+                too_far = True
         self.results[standardize_url(url)] = None
-        if urlparse(url).hostname not in self.valid_domains:
+
+        if too_far or urlparse(url).hostname not in self.valid_domains:
             self.pool.add_task(self.quick_check, parent_url=parent_url,
                                url=url)
         else:
