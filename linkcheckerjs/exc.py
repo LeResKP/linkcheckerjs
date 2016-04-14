@@ -4,3 +4,7 @@ class CheckerException(Exception):
 
 class RequestsException(CheckerException):
     pass
+
+
+class PhantomjsException(CheckerException):
+    pass

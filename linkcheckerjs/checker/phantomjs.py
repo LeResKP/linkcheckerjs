@@ -4,6 +4,7 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 
 from .utils import standardize_url
+from ..exc import PhantomjsException
 
 
 path = os.path.abspath(__file__)
@@ -79,16 +80,7 @@ def phantomjs_checker(url, parent_url=None, ignore_ssl_errors=False,
     process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     (stdout, stderr) = process.communicate()
     if process.returncode != 0:
-        return [{
-            'checker': 'phantomjs',
-            'url': standardize_url(url),
-            'redirect_url': None,
-            'status_code': '500',
-            'status': 'Phantomjs Error: %s %s' % (process.returncode, stderr),
-            'parent_url': parent_url,
-            'resources': [],
-            'urls': [],
-        }]
+        raise PhantomjsException(unicode(stderr))
 
     dic = json.loads(stdout)
     return parse_phantomjs_result(dic, url, parent_url)
