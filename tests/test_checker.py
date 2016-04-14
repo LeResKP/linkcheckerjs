@@ -63,10 +63,7 @@ class BaseTest(object):
 
     def test_ssl_error(self):
         if self.checker_name == 'requests':
-            msg = (
-                '[Errno 1] _ssl.c:504: error:14090086:SSL '
-                'routines:SSL3_GET_SERVER_CERTIFICATE:certificate '
-                'verify failed')
+            msg = 'SSL certificate verify failed'
         else:
             msg = None
         url = 'https://localhost:8081'

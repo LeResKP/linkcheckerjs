@@ -29,7 +29,7 @@ def requests_checker(url, parent_url=None, ignore_ssl_errors=False,
             'url': standardize_url(e.request.url),
             'redirect_url': None,
             'status_code': 500,
-            'status': unicode(e),
+            'status': 'SSL certificate verify failed',
             'parent_url': parent_url,
         }]
     except Exception, e:
