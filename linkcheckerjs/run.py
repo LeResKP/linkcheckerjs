@@ -31,6 +31,9 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 
+IGNORED_URL_PREFIXES = ['javascript:', 'data:', 'mailto:']
+
+
 class Linkchecker(object):
 
     def __init__(self, pool, ignore_ssl_errors=False,
@@ -67,10 +70,11 @@ class Linkchecker(object):
                     'status': 'Internal Error - %s' % unicode(e),
                     'parent_url': parent_url,
                 }
-        else:
-            for page in result:
-                if self.results.get(page['url']) is None:
-                    self.results[page['url']] = page
+                return
+
+        for page in result:
+            if self.results.get(page['url']) is None:
+                self.results[page['url']] = page
 
         if len(self.results) > self.max_nb_urls:
             return
@@ -112,12 +116,17 @@ class Linkchecker(object):
             self.pool.add_task(self.check, url=url, parent_url=parent_url,
                                depth=new_depth)
 
+    def filter_urls(self, urls):
+        return (u for u in urls
+                if not any(u.startswith(p) for p in IGNORED_URL_PREFIXES))
+
     def filter_ignore_urls_patterns(self, urls):
         return (u for u in urls
                 if not any(r.search(u) for r in self.ignored_urls_regex))
 
     def feed_result(self, url, result, new_depth):
-        urls_to_check = self.filter_ignore_urls_patterns(result['urls'])
+        urls_to_check = self.filter_urls(result['urls'])
+        urls_to_check = self.filter_ignore_urls_patterns(urls_to_check)
 
         # Feed discovered url to the checker
         self.__checkLock.acquire()

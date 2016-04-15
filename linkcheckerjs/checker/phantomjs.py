@@ -20,7 +20,7 @@ def parse_phantomjs_result(result, url, parent_url):
     We can have multiple pages when there is some redirect before having a real
     page
     """
-    urls = result['urls']
+    urls = filter(bool, result['urls'])
     phantomjs_resources = result['resources']
     keys = phantomjs_resources.keys()
     page = None

@@ -59,6 +59,20 @@ class TestLinkcheckerjs(TestCase):
         self.assertEqual(len(self.pool._tasks), 2)
         self.assertEqual(self.pool._tasks[1][0].__name__, 'check')
 
+    def test_filter_urls(self):
+        urls = [
+            'http://localhost:8080',
+            'mailto:something',
+            'data:something',
+        ]
+
+        linkchecker = run.Linkchecker(self.pool)
+        res = linkchecker.filter_urls(urls)
+        expected = [
+            'http://localhost:8080',
+        ]
+        self.assertEqual(list(res), expected)
+
     def test_filter_ignore_urls_patterns(self):
         urls = [
             'http://localhost:8080',

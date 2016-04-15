@@ -91,7 +91,11 @@ class Resource(Element):
 
     def __init__(self, result):
         super(Resource, self).__init__(result)
-        if self.parent_url and urlparse(self.parent_url).scheme == 'https':
+        if self.url.startswith('data:'):
+            # TODO: not the best place for this logic
+            self.display_level = INFO
+            self.status = 'Unable to parse data:'
+        elif self.parent_url and urlparse(self.parent_url).scheme == 'https':
             if urlparse(self.url).scheme == 'http':
                 self.display_level = ERROR
 
