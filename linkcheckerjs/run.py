@@ -10,7 +10,7 @@ from urlparse import urlparse
 from optparse import OptionParser
 from collections import OrderedDict
 
-from . import thread
+from . import thread, reader
 from .exc import CheckerException
 from .checker import (
     phantomjs_checker,
@@ -159,13 +159,14 @@ def main():
                       help="Pattern to ignore when crawling pages")
     parser.add_option("-v", "--verbose", action="store_true",
                       dest="verbose")
+
+    # Linkreader options
+    parser.add_option("-l", "--log-level", type="int", dest="log_level",
+                      help="linkcheckerjs log level")
     (options, args) = parser.parse_args()
 
     if options.filename is None and not args:
         raise Exception('Filename required')
-
-    if options.output is None:
-        raise Exception('Please provide an output json file')
 
     if options.verbose:
         handler.setLevel(logging.DEBUG)
@@ -196,8 +197,12 @@ def main():
 
     linkchecker.wait()
 
-    with open(options.output, 'w') as f:
-        json.dump(linkchecker.results, f)
+    if options.output:
+        with open(options.output, 'w') as f:
+            json.dump(linkchecker.results, f)
+    else:
+        reader.terminal_output(linkchecker.results,
+                               options_log_level=options.log_level)
 
 
 if __name__ == "__main__":
