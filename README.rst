@@ -17,6 +17,7 @@ Installation via Pip
 --------------------
 
 ::
+
     pip install linkcheckerjs
 
 
@@ -40,10 +41,12 @@ Basic usage
 
 To check recursively an URL like 'https://www.python.org' just type the following command in your terminal::
 
-    linkchecker https://www.python.org
+    linkcheckerjs https://www.python.org
 
 
-..note:: The external links will not be checked strongly. It's only check the page itself, nor the resources nor the links.
+.. note::
+
+    The external links (not on the same domain) will not be checked strongly. It's only check the page itself, nor the resources nor the links.
 
 
 
@@ -52,14 +55,14 @@ Advanced usage
 
 
 We will not see the powerful of creating a json and displaying the output separately here since it's in development.
-But for now it's just useful when you lost the output of linkchecker command.
+But for now it's just useful when you lost the output of linkcheckerjs command.
 
 
-You can create a json output when running linkchecker::
+You can create a json output when running linkcheckerjs::
 
-    linkchecker https://www.python.org -o /tmp/linkchecker-output.json
+    linkcheckerjs https://www.python.org -o /tmp/linkcheckerjs-output.json
 
 
 To read the generated json, type in your terminal::
 
-    linkreader https://www.python.org -o /tmp/linkchecker-output.json
+    linkreaderjs https://www.python.org -o /tmp/linkcheckerjs-output.json
