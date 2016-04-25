@@ -10,7 +10,7 @@ Requirements
 
 * python >= 2.6
 
-* node & npm: please refer to `node doc<https://nodejs.org/en/download/>`_
+* node & npm: please refer to `node doc <https://nodejs.org/en/download/>`_
 
 
 Installation via Pip
@@ -66,3 +66,23 @@ You can create a json output when running linkcheckerjs::
 To read the generated json, type in your terminal::
 
     linkreaderjs https://www.python.org -o /tmp/linkcheckerjs-output.json
+
+
+Build Status
+------------
+
+.. |master| image:: https://secure.travis-ci.org/LeResKP/linkcheckerjs.png?branch=master
+   :alt: Build Status - master branch
+   :target: https://travis-ci.org/#!/LeResKP/linkcheckerjs
+
+.. |develop| image:: https://secure.travis-ci.org/LeResKP/linkcheckerjs.png?branch=develop
+   :alt: Build Status - develop branch
+   :target: https://travis-ci.org/#!/LeResKP/linkcheckerjs
+
++----------+-----------+
+| Branch   | Status    |
++==========+===========+
+| master   | |master|  |
++----------+-----------+
+| develop  | |develop| |
++----------+-----------+
