@@ -52,11 +52,19 @@ setup(
     cmdclass={'build_py': NpmInstall, 'build_ext': CreateSymlink},
     name='linkcheckerjs',
     version=version,
-    description="",
-    long_description="""\
-    """,
-    classifiers=[],  # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-    keywords='',
+    description="Check links and resources in web page or full website",
+    long_description=open('README.rst').read().split('Build Status')[0],
+    classifiers=[
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: JavaScript',
+        'Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+
+    ],
+    keywords='checker,link,website,validation,crawler',
     author='Aur\xc3\xa9lien Matouillot',
     author_email='a.matouillot@gmail.com',
     url='',
