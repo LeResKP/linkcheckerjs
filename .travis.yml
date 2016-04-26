@@ -1,0 +1,16 @@
+language: python
+python:
+ - "2.7"
+
+node_js:
+ - "0.10"
+
+before_install:
+    - node --version
+    - npm --version
+
+install:
+    - python setup.py install
+
+script:
+    - python setup.py test
